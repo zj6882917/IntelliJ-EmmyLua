@@ -40,9 +40,10 @@ public class ClassFieldCompletionProvider extends CompletionProvider<CompletionP
 
         if (parent instanceof LuaIndexExpr) {
             LuaIndexExpr indexExpr = (LuaIndexExpr) parent;
-            LuaTypeSet prefixTypeSet = indexExpr.guessPrefixType(new SearchContext(indexExpr.getProject()));
+            SearchContext context = new SearchContext(indexExpr.getProject());
+            LuaTypeSet prefixTypeSet = indexExpr.guessPrefixType(context);
             if (prefixTypeSet != null) {
-                prefixTypeSet.getTypes().forEach(luaType -> luaType.addFieldCompletions(completionParameters, completionResultSet, new SearchContext(indexExpr.getProject())));
+                prefixTypeSet.getTypes().forEach(luaType -> luaType.addFieldCompletions(completionParameters, completionResultSet, context));
             }
         }
         //words in file

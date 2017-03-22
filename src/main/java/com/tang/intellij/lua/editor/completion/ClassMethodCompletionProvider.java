@@ -21,6 +21,7 @@ import com.intellij.codeInsight.completion.CompletionProvider;
 import com.intellij.codeInsight.completion.CompletionResultSet;
 import com.intellij.psi.PsiElement;
 import com.intellij.util.ProcessingContext;
+import com.tang.intellij.lua.lang.GuessTypeKind;
 import com.tang.intellij.lua.lang.type.LuaTypeSet;
 import com.tang.intellij.lua.psi.LuaCallExpr;
 import com.tang.intellij.lua.search.SearchContext;
@@ -40,7 +41,9 @@ public class ClassMethodCompletionProvider extends CompletionProvider<Completion
 
         if (parent instanceof LuaCallExpr) {
             LuaCallExpr callExpr = (LuaCallExpr) parent;
-            LuaTypeSet luaTypeSet = callExpr.guessPrefixType(new SearchContext(callExpr.getProject()));
+            SearchContext context = new SearchContext(callExpr.getProject());
+            context.setGuessTypeKind(GuessTypeKind.FromName);
+            LuaTypeSet luaTypeSet = callExpr.guessPrefixType(context);
             if (luaTypeSet != null) {
                 luaTypeSet.getTypes().forEach(luaType -> luaType.addMethodCompletions(completionParameters, completionResultSet, false));
             }
