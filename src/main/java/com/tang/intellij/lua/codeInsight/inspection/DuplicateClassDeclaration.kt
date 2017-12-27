@@ -21,6 +21,8 @@ import com.intellij.codeInspection.LocalInspectionToolSession
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.PsiElementVisitor
+import com.intellij.util.Processor
+import com.tang.intellij.lua.LuaBundle
 import com.tang.intellij.lua.comment.psi.LuaDocClassDef
 import com.tang.intellij.lua.comment.psi.LuaDocVisitor
 import com.tang.intellij.lua.search.LuaPredefinedScope
@@ -35,10 +37,11 @@ class DuplicateClassDeclaration : LocalInspectionTool() {
         return object : LuaDocVisitor() {
             override fun visitClassDef(o: LuaDocClassDef) {
                 val identifier = o.nameIdentifier
-                val classDefs = LuaClassIndex.getInstance().get(identifier.text, o.project, LuaPredefinedScope(o.project))
-                if (classDefs.size > 1) {
-                    holder.registerProblem(identifier, "Duplicate class", ProblemHighlightType.ERROR)
-                }
+                LuaClassIndex.process(identifier.text, o.project, LuaPredefinedScope(o.project), Processor {
+                    if (it != o)
+                        holder.registerProblem(identifier, LuaBundle.message("inspection.duplicate_class", it.containingFile.virtualFile.canonicalPath), ProblemHighlightType.GENERIC_ERROR)
+                    true
+                })
             }
         }
     }

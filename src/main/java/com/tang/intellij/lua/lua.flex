@@ -14,7 +14,7 @@ import static com.tang.intellij.lua.psi.LuaTypes.*;
 
     private int nBrackets = 0;
     private boolean checkAhead(char c, int offset) {
-        return this.zzMarkedPos >= this.zzBuffer.length()?false:this.zzBuffer.charAt(this.zzMarkedPos + offset) == c;
+        return this.zzMarkedPos + offset >= this.zzBuffer.length() ? false : this.zzBuffer.charAt(this.zzMarkedPos + offset) == c;
     }
 
     private boolean checkBlock() {
@@ -58,8 +58,10 @@ ID=[A-Za-z_][A-Za-z0-9_]*
 
 //Number
 n=[0-9]+
-exp=[Ee][+-]?{n}
-NUMBER=(0[xX][0-9a-fA-F]+|({n}|{n}[.]{n}){exp}?|[.]{n}|{n}[.])
+h=[0-9a-fA-F]+
+exp=[Ee]([+-]?{n})?
+ppp=[Pp][+-]{n}
+NUMBER=(0[xX]({h}|{h}[.]{h})({exp}|{ppp})?|({n}|{n}[.]{n}){exp}?|[.]{n}|{n}[.])
 
 //Comments
 REGION_START =--region({LINE_WS}+[^\r\n]*)*
@@ -74,6 +76,7 @@ SINGLE_QUOTED_STRING='([^\\\']|\\\S|\\[\r\n])*'?    //'([^\\'\r\n]|\\[^\r\n])*'?
 //[[]]
 LONG_STRING=\[=*\[[\s\S]*\]=*\]
 
+%state xSHEBANG
 %state xDOUBLE_QUOTED_STRING
 %state xSINGLE_QUOTED_STRING
 %state xBLOCK_STRING
@@ -112,7 +115,7 @@ LONG_STRING=\[=*\[[\s\S]*\]=*\]
   "until"                     { return UNTIL; }
   "while"                     { return WHILE; }
   "goto"                      { return GOTO; } //lua5.3
-  "#!"                        { return SHEBANG; }
+  "#!"                        { yybegin(xSHEBANG); return SHEBANG; }
   "..."                       { return ELLIPSIS; }
   ".."                        { return CONCAT; }
   "=="                        { return EQ; }
@@ -156,6 +159,10 @@ LONG_STRING=\[=*\[[\s\S]*\]=*\]
   {NUMBER}                    { return NUMBER; }
 
   [^] { return TokenType.BAD_CHARACTER; }
+}
+
+<xSHEBANG> {
+    [^\r\n]* { yybegin(YYINITIAL);return SHEBANG_CONTENT; }
 }
 
 <xCOMMENT> {

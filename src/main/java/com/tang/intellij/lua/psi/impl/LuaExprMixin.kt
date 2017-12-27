@@ -17,71 +17,20 @@
 package com.tang.intellij.lua.psi.impl
 
 import com.intellij.lang.ASTNode
-import com.intellij.openapi.util.RecursionManager
-import com.tang.intellij.lua.lang.type.LuaType
-import com.tang.intellij.lua.lang.type.LuaTypeSet
-import com.tang.intellij.lua.psi.*
-import com.tang.intellij.lua.search.SearchContext
+import com.intellij.psi.stubs.IStubElementType
+import com.intellij.psi.tree.IElementType
+import com.tang.intellij.lua.psi.LuaExpr
+import com.tang.intellij.lua.stubs.LuaExprStubImpl
 
 /**
  * 表达式基类
  * Created by TangZX on 2016/12/4.
  */
-open class LuaExprMixin internal constructor(node: ASTNode) : LuaPsiElementImpl(node), LuaExpression {
+abstract class LuaExprMixin : LuaExprStubMixin<LuaExprStubImpl<*>>, LuaExpr {
 
-    override fun guessType(context: SearchContext): LuaTypeSet? {
-        return RecursionManager.doPreventingRecursion<LuaTypeSet>(this, true) {
-            var set: LuaTypeSet? = null
-            if (this is LuaCallExpr)
-                set = guessType(this, context)
-            if (this is LuaParenExpr)
-                set = guessType(this, context)
-            else if (this is LuaLiteralExpr)
-                set = guessType(this)
-            set
-        }
-    }
+    constructor(stub: LuaExprStubImpl<*>, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
-    private fun guessType(literalExpr: LuaLiteralExpr): LuaTypeSet? {
-        val child = literalExpr.firstChild
-        val type = child.node.elementType
-        if (type === LuaTypes.TRUE || type === LuaTypes.FALSE)
-            return LuaTypeSet.create(LuaType.BOOLEAN)
-        if (type === LuaTypes.STRING)
-            return LuaTypeSet.create(LuaType.STRING)
-        if (type === LuaTypes.NUMBER)
-            return LuaTypeSet.create(LuaType.NUMBER)
-        return null
-    }
+    constructor(node: ASTNode) : super(node)
 
-    private fun guessType(luaParenExpr: LuaParenExpr, context: SearchContext): LuaTypeSet? {
-        val inner = luaParenExpr.expr
-        if (inner != null)
-            return inner.guessType(context)
-        return null
-    }
-
-    private fun guessType(luaCallExpr: LuaCallExpr, context: SearchContext): LuaTypeSet? {
-        // xxx()
-        val ref = luaCallExpr.expr
-        // 从 require 'xxx' 中获取返回类型
-        if (ref.textMatches("require")) {
-            var filePath: String? = null
-            val string = luaCallExpr.firstStringArg
-            if (string != null) {
-                filePath = string.text
-                filePath = filePath!!.substring(1, filePath.length - 1)
-            }
-            var file: LuaFile? = null
-            if (filePath != null)
-                file = LuaPsiResolveUtil.resolveRequireFile(filePath, luaCallExpr.project)
-            if (file != null)
-                return file.getReturnedType(context)
-        }
-        // find in comment
-        val bodyOwner = luaCallExpr.resolveFuncBodyOwner(context)
-        if (bodyOwner != null)
-            return bodyOwner.guessReturnTypeSet(context)
-        return null
-    }
+    constructor(stub: LuaExprStubImpl<*>, nodeType: IElementType, node: ASTNode) : super(stub, nodeType, node)
 }

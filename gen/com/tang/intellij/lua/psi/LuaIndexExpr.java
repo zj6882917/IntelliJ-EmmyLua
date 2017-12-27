@@ -5,13 +5,13 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiNameIdentifierOwner;
-import com.intellij.psi.StubBasedPsiElement;
-import com.tang.intellij.lua.stubs.LuaIndexStub;
+import com.tang.intellij.lua.stubs.LuaExprStubElement;
+import com.tang.intellij.lua.stubs.LuaIndexExprStub;
 import com.intellij.navigation.ItemPresentation;
-import com.tang.intellij.lua.lang.type.LuaTypeSet;
 import com.tang.intellij.lua.search.SearchContext;
+import com.tang.intellij.lua.ty.ITy;
 
-public interface LuaIndexExpr extends LuaExpr, PsiNameIdentifierOwner, StubBasedPsiElement<LuaIndexStub> {
+public interface LuaIndexExpr extends LuaExpr, PsiNameIdentifierOwner, LuaClassMember, LuaExprStubElement<LuaIndexExprStub> {
 
   @NotNull
   List<LuaExpr> getExprList();
@@ -34,15 +34,25 @@ public interface LuaIndexExpr extends LuaExpr, PsiNameIdentifierOwner, StubBased
   ItemPresentation getPresentation();
 
   @Nullable
-  LuaTypeSet guessPrefixType(SearchContext context);
+  LuaLiteralExpr getIdExpr();
 
-  @Nullable
-  LuaTypeSet guessValueType(SearchContext context);
+  //WARNING: toString(...) is skipped
+  //matching toString(LuaIndexExpr, ...)
+  //methods are not found in LuaPsiImplUtilKt
+
+  @NotNull
+  ITy guessParentType(SearchContext context);
+
+  @NotNull
+  ITy guessValueType(SearchContext context);
 
   @Nullable
   PsiElement getDot();
 
   @Nullable
   PsiElement getColon();
+
+  @Nullable
+  PsiElement getLbrack();
 
 }

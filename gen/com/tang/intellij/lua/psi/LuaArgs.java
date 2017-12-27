@@ -4,13 +4,9 @@ package com.tang.intellij.lua.psi;
 import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.StubBasedPsiElement;
+import com.tang.intellij.lua.stubs.LuaPlaceholderStub;
 
-public interface LuaArgs extends LuaPsiElement {
-
-  @Nullable
-  LuaExprList getExprList();
-
-  @Nullable
-  LuaTableExpr getTableExpr();
+public interface LuaArgs extends LuaPsiElement, StubBasedPsiElement<LuaPlaceholderStub> {
 
 }

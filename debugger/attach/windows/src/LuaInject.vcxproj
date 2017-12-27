@@ -21,16 +21,37 @@
   <ItemGroup>
     <ClCompile Include="LuaInject\DebugBackend.cpp" />
     <ClCompile Include="LuaInject\DebugHelp.cpp" />
+    <ClCompile Include="LuaInject\DebugMessage.cpp" />
+    <ClCompile Include="LuaInject\DebugPipeline.cpp" />
+    <ClCompile Include="LuaInject\Emmy.cpp" />
+    <ClCompile Include="LuaInject\endian.cpp" />
     <ClCompile Include="LuaInject\LuaCheckStack.cpp" />
     <ClCompile Include="LuaInject\LuaDll.cpp" />
     <ClCompile Include="LuaInject\DllMain.cpp" />
+    <ClCompile Include="LuaInject\LuaProfiler.cpp" />
+    <ClCompile Include="LuaInject\StackNode.cpp" />
+    <ClCompile Include="LuaInject\Stream.cpp" />
+    <ClCompile Include="LuaInject\TCPServer.cpp" />
+    <ClCompile Include="third-party\libpe\libpe\htable.cpp" />
+    <ClCompile Include="third-party\libpe\libpe\libpe.cpp" />
+    <ClCompile Include="third-party\libpe\libpe\llist.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LuaInject\DebugBackend.h" />
     <ClInclude Include="LuaInject\DebugHelp.h" />
+    <ClInclude Include="LuaInject\DebugMessage.h" />
+    <ClInclude Include="LuaInject\DebugPipeline.h" />
+    <ClInclude Include="LuaInject\endian.h" />
     <ClInclude Include="LuaInject\LuaCheckStack.h" />
     <ClInclude Include="LuaInject\LuaDll.h" />
+    <ClInclude Include="LuaInject\LuaProfiler.h" />
     <ClInclude Include="LuaInject\LuaTypes.h" />
+    <ClInclude Include="LuaInject\StackNode.h" />
+    <ClInclude Include="LuaInject\Stream.h" />
+    <ClInclude Include="LuaInject\TCPServer.h" />
+    <ClInclude Include="third-party\libpe\libpe\htable.h" />
+    <ClInclude Include="third-party\libpe\libpe\libpe.h" />
+    <ClInclude Include="third-party\libpe\libpe\llist.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="EasyHookDll\EasyHookDll.vcxproj">
@@ -38,9 +59,6 @@
     </ProjectReference>
     <ProjectReference Include="Shared.vcxproj">
       <Project>{2cd198e9-319c-48fb-85dc-ae3427a05bd2}</Project>
-    </ProjectReference>
-    <ProjectReference Include="tinyxml\tinyxmlSTL.vcxproj">
-      <Project>{a3a84737-5017-4577-b8a2-79429a25b8b6}</Project>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -57,11 +75,11 @@
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -97,7 +115,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>..\libs\LuaPlus\include;tinyxml;Shared;LuaInject;EasyHookDll;$(IncludePath)</IncludePath>
+    <IncludePath>third-party\libpe\libpe;..\libs\LuaPlus\include;Shared;LuaInject;EasyHookDll;$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
     <TargetExt>.dll</TargetExt>
     <OutDir>$(SolutionDir)Build\$(Configuration)\x86\</OutDir>
@@ -105,17 +123,22 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>..\libs\LuaPlus\include;tinyxml;Shared;LuaInject;EasyHookDll;$(IncludePath)</IncludePath>
+    <IncludePath>third-party\libpe\libpe;..\libs\LuaPlus\include;Shared;LuaInject;EasyHookDll;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)Build\$(Configuration)\x64\</OutDir>
     <IntDir>$(SolutionDir)Build\$(Configuration)\x64\Temp\$(ProjectName)</IntDir>
     <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)Build\$(Configuration)\x86</OutDir>
+    <IntDir>$(SolutionDir)Build\$(Configuration)\x86\Temp\$(ProjectName)</IntDir>
+    <TargetExt>.dll</TargetExt>
+    <IncludePath>third-party\libpe\libpe;..\libs\LuaPlus\include;Shared;LuaInject;EasyHookDll;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>..\libs\LuaPlus\include;tinyxml;Shared;LuaInject;EasyHookDll;$(IncludePath)</IncludePath>
+    <IncludePath>third-party\libpe\libpe;..\libs\LuaPlus\include;Shared;LuaInject;EasyHookDll;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)Build\$(Configuration)\x64\</OutDir>
     <IntDir>$(SolutionDir)Build\$(Configuration)\x64\Temp\$(ProjectName)</IntDir>
     <LibraryPath>$(LibraryPath)</LibraryPath>
@@ -127,7 +150,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;TIXML_USE_STL;_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -146,13 +169,13 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;TIXML_USE_STL;_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>EasyHook.lib;Psapi.lib;tinyxmlSTL.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>EasyHook.lib;Psapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)Build\$(Configuration)\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -161,16 +184,21 @@
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Optimization>Disabled</Optimization>
+      <FunctionLevelLinking>
+      </FunctionLevelLinking>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;_CONSOLE;_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(Configuration)\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>EasyHook.lib;Psapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -178,18 +206,20 @@
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>_CONSOLE;_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS;TIXML_USE_STL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <Optimization>Disabled</Optimization>
+      <FunctionLevelLinking>
+      </FunctionLevelLinking>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <PreprocessorDefinitions>_CONSOLE;_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>EasyHook64.lib;Psapi.lib;tinyxmlSTL.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>EasyHook.lib;Psapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)Build\$(Configuration)\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>

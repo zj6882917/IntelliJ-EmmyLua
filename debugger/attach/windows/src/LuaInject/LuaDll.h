@@ -77,7 +77,9 @@ void*           lua_touserdata_dll      (LAPI api, lua_State* L, int index);
 int             lua_gettop_dll          (LAPI api, lua_State*);
 int             lua_loadbuffer_dll      (LAPI api, lua_State*, const char*, size_t, const char*, const char*);
 void            lua_call_dll            (LAPI api, lua_State*, int, int);
+void            lua_callk_dll           (LAPI api, lua_State* L, int nargs, int nresults, int ctk, lua_CFunction k);
 int             lua_pcall_dll           (LAPI api, lua_State*, int, int, int);
+int             lua_pcallk_dll          (LAPI api, lua_State* L, int nargs, int nresults, int errfunc, int ctx, lua_CFunction k);
 void            lua_newtable_dll        (LAPI api, lua_State*);
 int             lua_next_dll            (LAPI api, lua_State*, int);
 int             lua_rawequal_dll        (LAPI api, lua_State *L, int idx1, int idx2);
@@ -110,10 +112,12 @@ bool lua_pushthread_dll(LAPI api, lua_State *L);
 const lua_WChar*    lua_towstring_dll   (LAPI api, lua_State *L, int index);
 int                 lua_iswstring_dll   (LAPI api, lua_State *L, int index);
 
-#define lua_pop_dll(api,L,n)                lua_settop_dll(api, L, -(n)-1)
-#define lua_isnil_dll(api,L,n)              (lua_type_dll(api, L, (n)) == LUA_TNIL)
-#define lua_pushcfunction_dll(api,L,f)      lua_pushcclosure_dll(api, L, (f), 0)
-#define lua_register_dll(api, L,n,f)        (lua_pushcfunction_dll(api, L, f), lua_setglobal_dll(api, L, n))
+#define lua_pop_dll(api,L,n)                      (lua_settop_dll(api, L, -(n)-1))
+#define lua_isnil_dll(api,L,n)                    (lua_type_dll(api, L, (n)) == LUA_TNIL)
+#define lua_pushcfunction_dll(api,L,f)            (lua_pushcclosure_dll(api, L, (f), 0))
+#define lua_register_dll(api, L,n,f)              (lua_pushcfunction_dll(api, L, f), lua_setglobal_dll(api, L, n))
+#define lua_dofile_dll(api, L, filename)          (luaL_loadfile_dll(api, L, filename) || lua_pcall_dll(api, L, 0, LUA_MULTRET, 0))
+#define lua_dobuffer_dll(api, L, buff, sz, name)  (lua_loadbuffer_dll(api, L, buff, sz, name, nullptr) || lua_pcall_dll(api, L, 0, LUA_MULTRET, 0))
 
 /**
  * This is similar to lua_cpcall_dll, but it handles the differences between

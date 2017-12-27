@@ -13,9 +13,8 @@ import com.tang.intellij.lua.stubs.LuaClassMethodStub;
 import com.tang.intellij.lua.psi.*;
 import com.intellij.navigation.ItemPresentation;
 import com.tang.intellij.lua.comment.psi.api.LuaComment;
-import com.tang.intellij.lua.lang.type.LuaType;
-import com.tang.intellij.lua.lang.type.LuaTypeSet;
 import com.tang.intellij.lua.search.SearchContext;
+import com.tang.intellij.lua.ty.ITy;
 import com.intellij.psi.stubs.IStubElementType;
 import com.intellij.psi.tree.IElementType;
 
@@ -45,71 +44,76 @@ public class LuaClassMethodDefImpl extends StubBasedPsiElementBase<LuaClassMetho
   @Override
   @NotNull
   public LuaClassMethodName getClassMethodName() {
-    return notNullChild(PsiTreeUtil.getChildOfType(this, LuaClassMethodName.class));
+    return notNullChild(PsiTreeUtil.getStubChildOfType(this, LuaClassMethodName.class));
   }
 
   @Override
   @Nullable
   public LuaFuncBody getFuncBody() {
-    return PsiTreeUtil.getChildOfType(this, LuaFuncBody.class);
+    return PsiTreeUtil.getStubChildOfType(this, LuaFuncBody.class);
   }
 
   @Nullable
   public LuaComment getComment() {
-    return LuaPsiImplUtil.getComment(this);
+    return LuaPsiImplUtilKt.getComment(this);
   }
 
-  @Nullable
-  public LuaType getClassType(SearchContext context) {
-    return LuaPsiImplUtil.getClassType(this, context);
+  @NotNull
+  public ITy guessParentType(SearchContext context) {
+    return LuaPsiImplUtilKt.guessParentType(this, context);
+  }
+
+  @NotNull
+  public Visibility getVisibility() {
+    return LuaPsiImplUtilKt.getVisibility(this);
   }
 
   @NotNull
   public List<LuaParamNameDef> getParamNameDefList() {
-    return LuaPsiImplUtil.getParamNameDefList(this);
+    return LuaPsiImplUtilKt.getParamNameDefList(this);
   }
 
   @NotNull
   public PsiElement getNameIdentifier() {
-    return LuaPsiImplUtil.getNameIdentifier(this);
+    return LuaPsiImplUtilKt.getNameIdentifier(this);
   }
 
   @NotNull
   public PsiElement setName(String name) {
-    return LuaPsiImplUtil.setName(this, name);
+    return LuaPsiImplUtilKt.setName(this, name);
   }
 
   @Nullable
   public String getName() {
-    return LuaPsiImplUtil.getName(this);
+    return LuaPsiImplUtilKt.getName(this);
   }
 
   public int getTextOffset() {
-    return LuaPsiImplUtil.getTextOffset(this);
+    return LuaPsiImplUtilKt.getTextOffset(this);
   }
 
   @NotNull
   public String toString() {
-    return LuaPsiImplUtil.toString(this);
+    return LuaPsiImplUtilKt.toString(this);
   }
 
-  @Nullable
-  public LuaTypeSet guessReturnTypeSet(SearchContext searchContext) {
-    return LuaPsiImplUtil.guessReturnTypeSet(this, searchContext);
+  @NotNull
+  public ITy guessReturnType(SearchContext searchContext) {
+    return LuaPsiImplUtilKt.guessReturnType(this, searchContext);
   }
 
   @NotNull
   public LuaParamInfo[] getParams() {
-    return LuaPsiImplUtil.getParams(this);
+    return LuaPsiImplUtilKt.getParams(this);
   }
 
   public boolean isStatic() {
-    return LuaPsiImplUtil.isStatic(this);
+    return LuaPsiImplUtilKt.isStatic(this);
   }
 
   @NotNull
   public ItemPresentation getPresentation() {
-    return LuaPsiImplUtil.getPresentation(this);
+    return LuaPsiImplUtilKt.getPresentation(this);
   }
 
 }

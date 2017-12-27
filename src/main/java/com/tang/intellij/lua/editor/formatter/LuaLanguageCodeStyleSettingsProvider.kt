@@ -21,6 +21,7 @@ import com.intellij.application.options.IndentOptionsEditor
 import com.intellij.application.options.SmartIndentOptionsEditor
 import com.intellij.psi.codeStyle.CodeStyleSettingsCustomizable
 import com.intellij.psi.codeStyle.CodeStyleSettingsCustomizable.SPACES_OTHER
+import com.intellij.psi.codeStyle.CodeStyleSettingsCustomizable.WRAPPING_FIELDS_VARIABLES_GROUPS
 import com.intellij.psi.codeStyle.LanguageCodeStyleSettingsProvider
 import com.tang.intellij.lua.lang.LuaLanguage
 
@@ -29,7 +30,7 @@ import com.tang.intellij.lua.lang.LuaLanguage
  * Created by tangzx on 2017/2/22.
  */
 class LuaLanguageCodeStyleSettingsProvider : LanguageCodeStyleSettingsProvider() {
-    override fun getLanguage() = LuaLanguage.INSTANCE
+    override fun getLanguage(): LuaLanguage = LuaLanguage.INSTANCE
 
     override fun getCodeSample(settingsType: LanguageCodeStyleSettingsProvider.SettingsType): String {
         return CodeStyleAbstractPanel.readFromFile(this.javaClass, "preview.lua.template")
@@ -46,6 +47,26 @@ class LuaLanguageCodeStyleSettingsProvider : LanguageCodeStyleSettingsProvider()
                 consumer.showStandardOptions("SPACE_AROUND_ASSIGNMENT_OPERATORS",
                         "SPACE_BEFORE_COMMA",
                         "SPACE_AFTER_COMMA")
+            }
+            LanguageCodeStyleSettingsProvider.SettingsType.WRAPPING_AND_BRACES_SETTINGS -> {
+                consumer.showStandardOptions(
+                        "METHOD_PARAMETERS_WRAP",
+                        "ALIGN_MULTILINE_PARAMETERS",
+
+                        "CALL_PARAMETERS_WRAP",
+                        "ALIGN_MULTILINE_PARAMETERS_IN_CALLS",
+
+                        // keep when reformatting
+                        "KEEP_SIMPLE_BLOCKS_IN_ONE_LINE",
+
+                        //align group declarations
+                        "ALIGN_CONSECUTIVE_VARIABLE_DECLARATIONS"
+                )
+
+                consumer.showCustomOption(LuaCodeStyleSettings::class.java,
+                        "ALIGN_TABLE_FIELD_ASSIGN",
+                        "Align table field assign",
+                        "Table")
             }
             else -> {
             }

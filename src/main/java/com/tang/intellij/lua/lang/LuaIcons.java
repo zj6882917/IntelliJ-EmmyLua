@@ -29,16 +29,32 @@ import javax.swing.*;
  */
 public class LuaIcons {
     public static final Icon FILE = IconLoader.getIcon("/icons/lua.png");
+    public static final Icon UNITY = IconLoader.getIcon("/icons/Unity.png");
     public static final Icon CLASS = AllIcons.Nodes.Class;
     public static final Icon CLASS_FIELD = AllIcons.Nodes.Field;
     public static final Icon CLASS_METHOD = AllIcons.Nodes.Method;
     public static final Icon CLASS_METHOD_OVERRIDING = new RowIcon(AllIcons.Nodes.Method, AllIcons.Gutter.OverridingMethod);
-    public static final Icon GLOBAL_FUNCTION = new LayeredIcon(AllIcons.Nodes.Method, AllIcons.Nodes.StaticMark);
-    public static final Icon GLOBAL_FIELD = new LayeredIcon(AllIcons.Nodes.Field, AllIcons.Nodes.StaticMark);
+
+    public static final Icon GLOBAL_FUNCTION = new LayeredIcon(AllIcons.Nodes.Function, AllIcons.Nodes.StaticMark);
+    public static final Icon GLOBAL_VAR = new LayeredIcon(AllIcons.Nodes.Variable, AllIcons.Nodes.StaticMark);
+
     public static final Icon LOCAL_VAR = AllIcons.Nodes.Variable;
-    public static final Icon LOCAL_FUNCTION = new LayeredIcon(AllIcons.Nodes.Function, AllIcons.Nodes.C_private);
+    public static final Icon LOCAL_FUNCTION = AllIcons.Nodes.Function;
+
     public static final Icon PARAMETER = AllIcons.Nodes.Parameter;
     public static final Icon WORD = AllIcons.Actions.Edit;
+    public static final Icon ANNOTATION = AllIcons.Css.Atrule;
+    public static final Icon META_METHOD = AllIcons.Javaee.PersistenceRelationship;
+
+    public static final Icon PUBLIC = AllIcons.Nodes.C_public;
+    public static final Icon PROTECTED = AllIcons.Nodes.C_protected;
+    public static final Icon PRIVATE = AllIcons.Nodes.C_private;
 
     public static final Icon MODULE = IconLoader.getIcon("/icons/module.png");
+
+    public static class Debugger {
+        public static class Actions {
+            public static final Icon PROFILER = AllIcons.Debugger.Db_primitive;
+        }
+    }
 }

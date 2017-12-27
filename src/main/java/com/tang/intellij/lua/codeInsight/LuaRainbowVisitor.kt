@@ -35,7 +35,7 @@ class LuaRainbowVisitor : RainbowVisitor() {
                 element is LuaDocParamNameRef)
         {
             val resolve = when (element) {
-                is LuaNameExpr -> LuaPsiResolveUtil.resolveLocal(element, null)
+                is LuaNameExpr -> resolveLocal(element, null)
                 else -> element
             }
             if (resolve is LuaFuncBodyOwner) return
@@ -61,5 +61,5 @@ class LuaRainbowVisitor : RainbowVisitor() {
         }
     }
 
-    override fun suitableForFile(p0: PsiFile): Boolean = p0 is LuaFile
+    override fun suitableForFile(p0: PsiFile): Boolean = p0 is LuaPsiFile
 }

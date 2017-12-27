@@ -34,6 +34,7 @@ function file:flush() end
 --- for line in file:lines() do *body* end
 --- will iterate over all lines of the file. (Unlike `io.lines`, this function
 --- does not close the file when the loop ends.)
+---@return fun():void
 function file:lines() end
 
 ---
@@ -69,6 +70,8 @@ function file:read(...) end
 --- it; the call `file:seek("set")` sets the position to the beginning of the
 --- file (and returns 0); and the call `file:seek("end")` sets the position
 --- to the end of the file, and returns its size.
+---@param whence string
+---@param offset number
 function file:seek(whence, offset) end
 
 ---
@@ -82,6 +85,8 @@ function file:seek(whence, offset) end
 --- there is any input from some special files (such as a terminal device).
 --- For the last two cases, `size` specifies the size of the buffer, in
 --- bytes. The default is an appropriate size.
+---@param mode string
+---@param size number
 function file:setvbuf(mode, size) end
 
 ---
@@ -94,6 +99,7 @@ function file:write(...) end
 ---
 --- Equivalent to `file:close()`. Without a `file`, closes the default
 --- output file.
+---@param file file
 function io.close(file) end
 
 ---
@@ -107,6 +113,9 @@ function io.flush() end
 --- called without parameters, it returns the current default input file.
 --- In case of errors this function raises the error, instead of returning an
 --- error code.
+---@overload fun():number
+---@param file string|file
+---@return number
 function io.input(file) end
 
 ---
@@ -173,7 +182,7 @@ function io.tmpfile() end
 --- Checks whether `obj` is a valid file handle. Returns the string `"file"`
 --- if `obj` is an open file handle, `"closed file"` if `obj` is a closed file
 --- handle, or nil if `obj` is not a file handle.
-function io.type(obj) return "" or nil end
+function io.type(obj) end
 
 ---
 --- Equivalent to `io.output():write`.

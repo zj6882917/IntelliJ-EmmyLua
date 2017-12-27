@@ -10,8 +10,7 @@ import com.intellij.psi.util.PsiTreeUtil;
 import static com.tang.intellij.lua.comment.psi.LuaDocTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.tang.intellij.lua.comment.psi.*;
-import com.tang.intellij.lua.lang.type.LuaTypeSet;
-import com.tang.intellij.lua.search.SearchContext;
+import com.tang.intellij.lua.ty.ITy;
 
 public class LuaDocParamDefImpl extends ASTWrapperPsiElement implements LuaDocParamDef {
 
@@ -42,13 +41,13 @@ public class LuaDocParamDefImpl extends ASTWrapperPsiElement implements LuaDocPa
 
   @Override
   @Nullable
-  public LuaDocTypeSet getTypeSet() {
-    return PsiTreeUtil.getChildOfType(this, LuaDocTypeSet.class);
+  public LuaDocTy getTy() {
+    return PsiTreeUtil.getChildOfType(this, LuaDocTy.class);
   }
 
-  @Nullable
-  public LuaTypeSet guessType(SearchContext context) {
-    return LuaDocPsiImplUtilKt.guessType(this, context);
+  @NotNull
+  public ITy getType() {
+    return LuaDocPsiImplUtilKt.getType(this);
   }
 
   @Override

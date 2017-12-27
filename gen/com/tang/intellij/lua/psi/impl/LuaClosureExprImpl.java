@@ -9,13 +9,25 @@ import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static com.tang.intellij.lua.psi.LuaTypes.*;
 import com.tang.intellij.lua.psi.*;
-import com.tang.intellij.lua.lang.type.LuaTypeSet;
 import com.tang.intellij.lua.search.SearchContext;
+import com.tang.intellij.lua.ty.ITy;
+import com.tang.intellij.lua.stubs.LuaClosureExprStub;
+import com.intellij.psi.stubs.IStubElementType;
+import com.intellij.psi.tree.IElementType;
+import com.tang.intellij.lua.stubs.LuaExprStub;
 
-public class LuaClosureExprImpl extends LuaExprImpl implements LuaClosureExpr {
+public class LuaClosureExprImpl extends LuaClosureExprMixin implements LuaClosureExpr {
+
+  public LuaClosureExprImpl(LuaClosureExprStub stub, IStubElementType<?, ?> nodeType) {
+    super(stub, nodeType);
+  }
 
   public LuaClosureExprImpl(ASTNode node) {
     super(node);
+  }
+
+  public LuaClosureExprImpl(LuaClosureExprStub stub, IElementType type, ASTNode node) {
+    super(stub, type, node);
   }
 
   public void accept(@NotNull LuaVisitor visitor) {
@@ -30,22 +42,22 @@ public class LuaClosureExprImpl extends LuaExprImpl implements LuaClosureExpr {
   @Override
   @NotNull
   public LuaFuncBody getFuncBody() {
-    return notNullChild(PsiTreeUtil.getChildOfType(this, LuaFuncBody.class));
+    return notNullChild(PsiTreeUtil.getStubChildOfType(this, LuaFuncBody.class));
   }
 
   @NotNull
   public List<LuaParamNameDef> getParamNameDefList() {
-    return LuaPsiImplUtil.getParamNameDefList(this);
+    return LuaPsiImplUtilKt.getParamNameDefList(this);
   }
 
-  @Nullable
-  public LuaTypeSet guessReturnTypeSet(SearchContext searchContext) {
-    return LuaPsiImplUtil.guessReturnTypeSet(this, searchContext);
+  @NotNull
+  public ITy guessReturnType(SearchContext searchContext) {
+    return LuaPsiImplUtilKt.guessReturnType(this, searchContext);
   }
 
   @NotNull
   public LuaParamInfo[] getParams() {
-    return LuaPsiImplUtil.getParams(this);
+    return LuaPsiImplUtilKt.getParams(this);
   }
 
 }

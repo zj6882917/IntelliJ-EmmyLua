@@ -5,19 +5,18 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.StubBasedPsiElement;
-import com.tang.intellij.lua.stubs.LuaDocTyStub;
-import com.tang.intellij.lua.lang.type.LuaTypeSet;
-import com.tang.intellij.lua.search.SearchContext;
+import com.tang.intellij.lua.stubs.LuaDocTypeDefStub;
+import com.tang.intellij.lua.ty.ITy;
 
-public interface LuaDocTypeDef extends LuaDocPsiElement, StubBasedPsiElement<LuaDocTyStub> {
+public interface LuaDocTypeDef extends LuaDocPsiElement, StubBasedPsiElement<LuaDocTypeDefStub> {
 
   @Nullable
   LuaDocCommentString getCommentString();
 
   @Nullable
-  LuaDocTypeSet getTypeSet();
+  LuaDocTy getTy();
 
-  @Nullable
-  LuaTypeSet guessType(SearchContext context);
+  @NotNull
+  ITy getType();
 
 }

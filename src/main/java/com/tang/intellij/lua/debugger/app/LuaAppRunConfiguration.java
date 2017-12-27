@@ -31,6 +31,7 @@ import com.intellij.openapi.util.JDOMExternalizerUtil;
 import com.intellij.openapi.util.SystemInfoRt;
 import com.intellij.openapi.util.WriteExternalException;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.util.execution.ParametersListUtil;
 import com.tang.intellij.lua.debugger.DebuggerType;
 import com.tang.intellij.lua.debugger.IRemoteConfiguration;
 import com.tang.intellij.lua.debugger.LuaCommandLineState;
@@ -41,6 +42,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -152,7 +154,7 @@ public class LuaAppRunConfiguration extends LuaRunConfiguration implements IRemo
     public String[] getParametersArray() {
         ArrayList<String> list = new ArrayList<>();
         if (params != null && !params.isEmpty()) {
-            String[] strings = params.split("\\s+");
+            String[] strings = ParametersListUtil.parseToArray(params);
             list.addAll(Arrays.asList(strings));
         }
         if (file != null && !file.isEmpty()) {
@@ -197,19 +199,16 @@ public class LuaAppRunConfiguration extends LuaRunConfiguration implements IRemo
         if (workingDir == null || !new File(workingDir).exists()) {
             throw new RuntimeConfigurationError("Working dir doesn't exist.");
         }
-
-        /*VirtualFile virtualFile = getVirtualFile();
-        if (virtualFile == null) {
-            throw new RuntimeConfigurationError("Entry file doesn't exist.");
-        }*/
     }
 
     @Override
     public GeneralCommandLine createCommandLine() {
         GeneralCommandLine commandLine = new GeneralCommandLine().withExePath(program);
         String[] params = getParametersArray();
+        commandLine.withEnvironment(getEnvs());
         commandLine.addParameters(params);
         commandLine.setWorkDirectory(getWorkingDir());
+        commandLine.setCharset(Charset.forName("UTF-8"));
         return commandLine;
     }
 }

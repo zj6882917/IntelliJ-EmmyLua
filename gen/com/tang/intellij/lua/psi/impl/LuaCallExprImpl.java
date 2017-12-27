@@ -9,13 +9,25 @@ import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static com.tang.intellij.lua.psi.LuaTypes.*;
 import com.tang.intellij.lua.psi.*;
-import com.tang.intellij.lua.lang.type.LuaTypeSet;
 import com.tang.intellij.lua.search.SearchContext;
+import com.tang.intellij.lua.ty.ITy;
+import com.tang.intellij.lua.stubs.LuaExprPlaceStub;
+import com.intellij.psi.stubs.IStubElementType;
+import com.intellij.psi.tree.IElementType;
+import com.tang.intellij.lua.stubs.LuaExprStub;
 
-public class LuaCallExprImpl extends LuaExprImpl implements LuaCallExpr {
+public class LuaCallExprImpl extends LuaCallExprMixin implements LuaCallExpr {
+
+  public LuaCallExprImpl(LuaExprPlaceStub stub, IStubElementType<?, ?> nodeType) {
+    super(stub, nodeType);
+  }
 
   public LuaCallExprImpl(ASTNode node) {
     super(node);
+  }
+
+  public LuaCallExprImpl(LuaExprPlaceStub stub, IElementType type, ASTNode node) {
+    super(stub, type, node);
   }
 
   public void accept(@NotNull LuaVisitor visitor) {
@@ -30,40 +42,40 @@ public class LuaCallExprImpl extends LuaExprImpl implements LuaCallExpr {
   @Override
   @NotNull
   public LuaArgs getArgs() {
-    return notNullChild(PsiTreeUtil.getChildOfType(this, LuaArgs.class));
+    return notNullChild(PsiTreeUtil.getStubChildOfType(this, LuaArgs.class));
   }
 
   @Override
   @NotNull
   public LuaExpr getExpr() {
-    return notNullChild(PsiTreeUtil.getChildOfType(this, LuaExpr.class));
+    return notNullChild(PsiTreeUtil.getStubChildOfType(this, LuaExpr.class));
   }
 
-  @Nullable
-  public LuaTypeSet guessPrefixType(SearchContext context) {
-    return LuaPsiImplUtil.guessPrefixType(this, context);
+  @NotNull
+  public ITy guessParentType(SearchContext context) {
+    return LuaPsiImplUtilKt.guessParentType(this, context);
   }
 
   @Nullable
   public LuaFuncBodyOwner resolveFuncBodyOwner(SearchContext context) {
-    return LuaPsiImplUtil.resolveFuncBodyOwner(this, context);
+    return LuaPsiImplUtilKt.resolveFuncBodyOwner(this, context);
   }
 
   @Nullable
   public PsiElement getFirstStringArg() {
-    return LuaPsiImplUtil.getFirstStringArg(this);
+    return LuaPsiImplUtilKt.getFirstStringArg(this);
   }
 
   public boolean isStaticMethodCall() {
-    return LuaPsiImplUtil.isStaticMethodCall(this);
+    return LuaPsiImplUtilKt.isStaticMethodCall(this);
   }
 
   public boolean isMethodCall() {
-    return LuaPsiImplUtil.isMethodCall(this);
+    return LuaPsiImplUtilKt.isMethodCall(this);
   }
 
   public boolean isFunctionCall() {
-    return LuaPsiImplUtil.isFunctionCall(this);
+    return LuaPsiImplUtilKt.isFunctionCall(this);
   }
 
 }

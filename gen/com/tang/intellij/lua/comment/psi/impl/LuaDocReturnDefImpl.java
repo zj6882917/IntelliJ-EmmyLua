@@ -10,8 +10,7 @@ import com.intellij.psi.util.PsiTreeUtil;
 import static com.tang.intellij.lua.comment.psi.LuaDocTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.tang.intellij.lua.comment.psi.*;
-import com.tang.intellij.lua.lang.type.LuaTypeSet;
-import com.tang.intellij.lua.search.SearchContext;
+import com.tang.intellij.lua.ty.ITy;
 
 public class LuaDocReturnDefImpl extends ASTWrapperPsiElement implements LuaDocReturnDef {
 
@@ -41,8 +40,8 @@ public class LuaDocReturnDefImpl extends ASTWrapperPsiElement implements LuaDocR
   }
 
   @NotNull
-  public LuaTypeSet resolveTypeAt(int index, SearchContext context) {
-    return LuaDocPsiImplUtilKt.resolveTypeAt(this, index, context);
+  public ITy resolveTypeAt(int index) {
+    return LuaDocPsiImplUtilKt.resolveTypeAt(this, index);
   }
 
 }

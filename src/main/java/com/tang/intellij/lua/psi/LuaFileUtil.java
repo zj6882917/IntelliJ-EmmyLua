@@ -25,14 +25,18 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.FileIndexFacade;
 import com.intellij.openapi.roots.ModuleRootManager;
 import com.intellij.openapi.util.Key;
+import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.util.SmartList;
+import com.tang.intellij.lua.ext.ILuaFileResolver;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -43,7 +47,10 @@ public class LuaFileUtil {
 
     //有些扩展名也许是txt
     private static String[] extensions = new String[] {
-            "", ".lua", ".txt", ".lua.txt"
+            ".lua.txt",
+            ".lua",
+            ".txt",
+            ""
     };
 
     public static boolean fileEquals(VirtualFile f1, VirtualFile f2) {
@@ -53,40 +60,55 @@ public class LuaFileUtil {
         return f1.getPath().equals(f2.getPath());
     }
 
-    public static List<String> getNoExtensionUrl(String shortUrl) {
+    public static List<String> getAllAvailablePathsForMob(@Nullable String shortPath, @NotNull VirtualFile file) {
         SmartList<String> list = new SmartList<>();
-        for (String ext : extensions) {
-            if (!shortUrl.endsWith(ext)) {
-                continue;
+        String fullPath = file.getCanonicalPath();
+        if (fullPath != null) {
+            for (String ext : extensions) {
+                if (!fullPath.endsWith(ext)) {
+                    continue;
+                }
+                list.add(fullPath.substring(0, fullPath.length() - ext.length()));
             }
-            list.add(shortUrl.substring(0, shortUrl.length() - ext.length()));
+        }
+        if (shortPath != null) {
+            for (String ext : extensions) {
+                if (!shortPath.endsWith(ext)) {
+                    continue;
+                }
+                String path = shortPath.substring(0, shortPath.length() - ext.length());
+                list.add(path);
+                if (path.indexOf('/') != -1)
+                    list.add(path.replace('/', '.'));
+            }
         }
         return list;
     }
 
+    @Nullable
     public static VirtualFile findFile(@NotNull Project project, String shortUrl) {
         if (shortUrl == null)
             return null;
+        return ILuaFileResolver.Companion.findLuaFile(project, shortUrl, extensions);
+    }
 
-        shortUrl = shortUrl.replace('\\', '/').trim();
-        shortUrl = shortUrl.replaceAll("\\.", "/");
-        Module[] modules = ModuleManager.getInstance(project).getModules();
-        for (Module module : modules) {
-            String[] sourceRoots = ModuleRootManager.getInstance(module).getSourceRootUrls();
-            //相对路径
-            for (String sourceRoot : sourceRoots) {
-                for (String ext : extensions) {
-                    VirtualFile file = VirtualFileManager.getInstance().findFileByUrl(sourceRoot + "/" + shortUrl + ext);
-                    if (file != null && !file.isDirectory()) {
-                        return file;
-                    }
-                }
-            }
-        }
-
-        //绝对路径
+    @Nullable
+    public static VirtualFile findFile(String shortUrl, String root) {
         for (String ext : extensions) {
-            VirtualFile file = VirtualFileManager.getInstance().findFileByUrl(VfsUtil.pathToUrl(shortUrl + ext));
+            String fixedURL = shortUrl;
+            if (shortUrl.endsWith(ext)) { //aa.bb.lua -> aa.bb
+                fixedURL = shortUrl.substring(0, shortUrl.length() - ext.length());
+            }
+
+            //将.转为/，但不处理 ..
+            if (!fixedURL.contains("/")) {
+                //aa.bb -> aa/bb.lua
+                fixedURL = fixedURL.replaceAll("\\.", "/");
+            }
+
+            fixedURL = fixedURL + ext;
+
+            VirtualFile file = VirtualFileManager.getInstance().findFileByUrl(root + "/" + fixedURL);
             if (file != null && !file.isDirectory()) {
                 return file;
             }
@@ -174,6 +196,26 @@ public class LuaFileUtil {
                 return fullPath;
         }
         return null;
+    }
+
+    @Nullable
+    public static String asRequirePath(@NotNull Project project, @NotNull VirtualFile file) {
+        VirtualFile root = getSourceRoot(project, file);
+        if (root == null)
+            return null;
+        ArrayList<String> list = new ArrayList<>();
+        VirtualFile item = file;
+        while (!item.equals(root)) {
+            if (item.isDirectory())
+                list.add(item.getName());
+            else
+                list.add(FileUtil.getNameWithoutExtension(item.getName()));
+            item = item.getParent();
+        }
+        if (list.isEmpty())
+            return null;
+        Collections.reverse(list);
+        return String.join(".", list);
     }
 
     public static Key<Boolean> PREDEFINED_KEY = Key.create("lua.lib.predefined");

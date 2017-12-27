@@ -16,109 +16,53 @@
 
 package com.tang.intellij.lua.psi.impl
 
-import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
-import com.intellij.openapi.util.RecursionManager
 import com.intellij.psi.PsiReference
-import com.intellij.psi.PsiReferenceService
-import com.intellij.psi.impl.source.resolve.reference.ReferenceProvidersRegistry
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.tree.IElementType
-import com.tang.intellij.lua.lang.type.LuaType
-import com.tang.intellij.lua.lang.type.LuaTypeSet
-import com.tang.intellij.lua.psi.LuaClassField
-import com.tang.intellij.lua.psi.LuaExpression
-import com.tang.intellij.lua.psi.LuaIndexExpr
-import com.tang.intellij.lua.search.SearchContext
-import com.tang.intellij.lua.stubs.LuaIndexStub
-import com.tang.intellij.lua.stubs.index.LuaClassFieldIndex
+import com.tang.intellij.lua.comment.psi.LuaDocAccessModifier
+import com.tang.intellij.lua.comment.psi.api.LuaComment
+import com.tang.intellij.lua.psi.*
+import com.tang.intellij.lua.stubs.LuaIndexExprStub
 
 /**
 
  * Created by TangZX on 2017/4/12.
  */
-open class LuaIndexExprMixin : StubBasedPsiElementBase<LuaIndexStub>, LuaExpression, LuaClassField {
+abstract class LuaIndexExprMixin : LuaExprStubMixin<LuaIndexExprStub>, LuaExpr, LuaClassField {
 
-    internal constructor(stub: LuaIndexStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
+    internal constructor(stub: LuaIndexExprStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     internal constructor(node: ASTNode) : super(node)
 
-    internal constructor(stub: LuaIndexStub, nodeType: IElementType, node: ASTNode) : super(stub, nodeType, node)
-
-
-    override fun getReferences(): Array<PsiReference> {
-        return ReferenceProvidersRegistry.getReferencesFromProviders(this, PsiReferenceService.Hints.NO_HINTS)
-    }
+    internal constructor(stub: LuaIndexExprStub, nodeType: IElementType, node: ASTNode) : super(stub, nodeType, node)
 
     override fun getReference(): PsiReference? {
-        val references = references
+        return references.firstOrNull()
+    }
 
-        if (references.isNotEmpty())
-            return references[0]
+    /**
+     * --- some comment
+     * ---@type type @ annotations
+     * self.field = value
+     *
+     * get comment for `field`
+     */
+    val comment: LuaComment? get() {
+        val p = parent
+        if (p is LuaVarList) {
+            val stat = p.parent as LuaStatement
+            return stat.comment
+        }
         return null
     }
 
-    override fun guessType(context: SearchContext): LuaTypeSet? {
-        return RecursionManager.doPreventingRecursion(this, true) {
-            var result = LuaTypeSet.create()
-            val indexExpr = this as LuaIndexExpr
-
-            // value type
-            val stub = indexExpr.stub
-            val valueTypeSet: LuaTypeSet?
-            if (stub != null)
-                valueTypeSet = stub.guessValueType()
-            else
-                valueTypeSet = indexExpr.guessValueType(context)
-
-            result = result.union(valueTypeSet)
-
-            val propName = this.fieldName
-            if (propName != null) {
-                val prefixType = indexExpr.guessPrefixType(context)
-                if (prefixType != null && !prefixType.isEmpty) {
-                    prefixType.types
-                            .asSequence()
-                            .map { guessFieldType(propName, it, context) }
-                            .forEach { result = result.union(it) }
-                }
-            }
-            result
-        }
-    }
-
-    private fun guessFieldType(fieldName: String, type: LuaType, context: SearchContext): LuaTypeSet? {
-        var set = LuaTypeSet.create()
-
-        val all = LuaClassFieldIndex.findAll(type, fieldName, context)
-        for (fieldDef in all) {
-            if (fieldDef is LuaIndexExpr) {
-                val stub = fieldDef.stub
-                if (stub != null)
-                    set = set.union(stub.guessValueType())
-                else
-                    set = set.union(fieldDef.guessValueType(context))
-
-                if (fieldDef === this)
-                    return set
-            }
-
-            if (fieldDef != null) {
-                set = set.union(fieldDef.guessType(context))
-            } else {
-                val superType = type.getSuperClass(context)
-                if (superType != null)
-                    set = set.union(guessFieldType(fieldName, superType, context))
-            }
-        }
-
-        return set
-    }
-
-    override fun getFieldName(): String? {
-        val stub = stub
+    override val visibility: Visibility get() {
+        val stub = this.stub
         if (stub != null)
-            return stub.fieldName
-        return name
+            return stub.visibility
+        return comment?.findTag(LuaDocAccessModifier::class.java)?.let {
+            Visibility.get(it.text)
+        } ?: Visibility.PUBLIC
     }
 }

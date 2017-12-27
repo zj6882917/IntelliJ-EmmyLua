@@ -59,6 +59,20 @@ std::string TrimSpaces(const std::string& string)
 
 }
 
+std::string FixFileName(const std::string& fileName)
+{
+	std::string out = fileName;
+	ReplaceAll(out, "\\", "/");
+	// remove ./
+	if (out[0] == '.' && out[1] == '/') {
+		out.erase(0, 2);
+	}
+	else if (out[0] == '@' && out[1] == '.' && out[2] == '/') {
+		out.erase(1, 2);
+	}
+	return out;
+}
+
 std::string GetDirectory(const std::string& fileName)
 {
 
@@ -76,4 +90,13 @@ std::string GetDirectory(const std::string& fileName)
 bool GetIsSlash(char c)
 {
     return c == '\\' || c == '/';
+}
+
+void CopyString(std::string& dst, const char* data, size_t size)
+{
+	char* temp = (char*)malloc(size + 1);
+	memcpy(temp, data, size);
+	temp[size] = '\0';
+	dst = temp;
+	free(temp);
 }

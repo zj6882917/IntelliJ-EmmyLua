@@ -23,12 +23,15 @@ import com.intellij.navigation.NavigationItem
 import javax.swing.Icon
 
 /**
-
  * Created by TangZX on 2016/12/28.
  */
-abstract class LuaTreeElement<T : NavigationItem> internal constructor(protected var element: T, private val icon: Icon) : StructureViewTreeElement {
+open class LuaTreeElement internal constructor(val element: NavigationItem, var name: String, val icon: Icon) : StructureViewTreeElement {
+    var parent: LuaTreeElement? = null
+    private val children = LinkedHashMap<String, LuaTreeElement>()
 
-    abstract fun getPresentableText(): String?
+    open fun getPresentableText(): String? {
+        return name
+    }
 
     override fun getValue(): Any {
         return element
@@ -51,7 +54,20 @@ abstract class LuaTreeElement<T : NavigationItem> internal constructor(protected
     }
 
     override fun getChildren(): Array<TreeElement> {
-        return emptyArray()
+        return children.values.toTypedArray()
+    }
+
+    fun addChild(child: LuaTreeElement, name: String? = null) {
+        children[name ?: child.name] = child
+        child.parent = this
+    }
+
+    fun clearChildren() {
+        children.clear()
+    }
+
+    fun childNamed(name: String): LuaTreeElement? {
+        return children[name]
     }
 
     override fun navigate(b: Boolean) {

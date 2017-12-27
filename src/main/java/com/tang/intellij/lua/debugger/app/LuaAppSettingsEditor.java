@@ -18,6 +18,8 @@ package com.tang.intellij.lua.debugger.app;
 
 import com.intellij.codeInsight.completion.CompletionResultSet;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
+import com.intellij.execution.configuration.EnvironmentVariablesTextFieldWithBrowseButton;
+import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.options.ConfigurationException;
@@ -26,6 +28,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.openapi.util.SystemInfoRt;
+import com.intellij.ui.HoverHyperlinkLabel;
+import com.intellij.ui.HyperlinkAdapter;
 import com.intellij.ui.RawCommandLineEditor;
 import com.intellij.util.TextFieldCompletionProvider;
 import com.intellij.util.textCompletion.TextFieldWithCompletion;
@@ -36,6 +40,7 @@ import com.tang.intellij.lua.psi.LuaFileUtil;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.event.HyperlinkEvent;
 
 /**
  *
@@ -48,6 +53,8 @@ public class LuaAppSettingsEditor extends SettingsEditor<LuaAppRunConfiguration>
     private TextFieldWithCompletion myFile;
     private TextFieldWithBrowseButton myWorkingDir;
     private RawCommandLineEditor parameters;
+    private HoverHyperlinkLabel mobdebugLink;
+    private EnvironmentVariablesTextFieldWithBrowseButton myEnvironments;
     private Project project;
 
     LuaAppSettingsEditor(Project project) {
@@ -65,7 +72,11 @@ public class LuaAppSettingsEditor extends SettingsEditor<LuaAppRunConfiguration>
 
         DefaultComboBoxModel<DebuggerType> debuggerDataModel = new DefaultComboBoxModel<>(debuggerTypes);
         myDebugger.setModel(debuggerDataModel);
-        myDebugger.addItemListener(e -> fireEditorStateChanged());
+        myDebugger.addItemListener(e -> {
+            DebuggerType debuggerType = (DebuggerType) myDebugger.getSelectedItem();
+            mobdebugLink.setVisible(debuggerType == DebuggerType.Mob);
+            fireEditorStateChanged();
+        });
     }
 
     @Override
@@ -75,6 +86,8 @@ public class LuaAppSettingsEditor extends SettingsEditor<LuaAppRunConfiguration>
         myFile.setText(luaAppRunConfiguration.getFile());
         myDebugger.setSelectedItem(luaAppRunConfiguration.getDebuggerType());
         parameters.setText(luaAppRunConfiguration.getParameters());
+        myEnvironments.setEnvs(luaAppRunConfiguration.getEnvs());
+        mobdebugLink.setVisible(luaAppRunConfiguration.getDebuggerType() == DebuggerType.Mob);
     }
 
     @Override
@@ -84,6 +97,7 @@ public class LuaAppSettingsEditor extends SettingsEditor<LuaAppRunConfiguration>
         luaAppRunConfiguration.setFile(myFile.getText());
         luaAppRunConfiguration.setDebuggerType((DebuggerType) myDebugger.getSelectedItem());
         luaAppRunConfiguration.setParameters(parameters.getText());
+        luaAppRunConfiguration.setEnvs(myEnvironments.getEnvs());
     }
 
     @NotNull
@@ -117,5 +131,13 @@ public class LuaAppSettingsEditor extends SettingsEditor<LuaAppRunConfiguration>
                 true,
                 true,
                 true);
+
+        mobdebugLink = new HoverHyperlinkLabel("Get mobdebug.lua");
+        mobdebugLink.addHyperlinkListener(new HyperlinkAdapter() {
+            @Override
+            protected void hyperlinkActivated(HyperlinkEvent hyperlinkEvent) {
+                BrowserUtil.browse("https://github.com/pkulchenko/MobDebug");
+            }
+        });
     }
 }

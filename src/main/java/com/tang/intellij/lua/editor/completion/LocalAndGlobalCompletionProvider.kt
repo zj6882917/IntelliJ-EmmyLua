@@ -17,111 +17,120 @@
 package com.tang.intellij.lua.editor.completion
 
 import com.intellij.codeInsight.completion.CompletionParameters
-import com.intellij.codeInsight.completion.CompletionProvider
 import com.intellij.codeInsight.completion.CompletionResultSet
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.psi.tree.TokenSet
 import com.intellij.util.ProcessingContext
+import com.intellij.util.Processor
 import com.tang.intellij.lua.Constants
 import com.tang.intellij.lua.highlighting.LuaSyntaxHighlighter
 import com.tang.intellij.lua.lang.LuaIcons
-import com.tang.intellij.lua.psi.LuaParamNameDef
-import com.tang.intellij.lua.psi.LuaPsiImplUtil
-import com.tang.intellij.lua.psi.LuaPsiTreeUtil
-import com.tang.intellij.lua.psi.LuaTypes
+import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.search.SearchContext
-import com.tang.intellij.lua.stubs.index.LuaGlobalFuncIndex
-import com.tang.intellij.lua.stubs.index.LuaGlobalVarIndex
+import com.tang.intellij.lua.ty.*
 
 /**
  * suggest local/global vars and functions
  * Created by TangZX on 2017/4/11.
  */
-class LocalAndGlobalCompletionProvider internal constructor(private val mask: Int) : CompletionProvider<CompletionParameters>() {
+class LocalAndGlobalCompletionProvider internal constructor(private val mask: Int) : ClassMemberCompletionProvider() {
 
     private fun has(flag: Int): Boolean {
         return mask and flag == flag
     }
 
+    private fun addCompletion(name:String, session: CompletionSession, psi: LuaPsiElement) {
+        val addTy = {ty: ITyFunction ->
+            val icon = if (ty.isGlobal)
+                LuaIcons.GLOBAL_FUNCTION
+            else
+                LuaIcons.LOCAL_FUNCTION
+
+            ty.process(Processor {
+                val le = TyFunctionLookupElement(name, psi, it, false, ty, icon)
+                le.handler = SignatureInsertHandler(it)
+                session.resultSet.addElement(le)
+                true
+            })
+        }
+        when (psi) {
+            is LuaFuncBodyOwner -> {
+                addTy(psi.guessType(SearchContext(psi.project)) as ITyFunction)
+            }
+            is LuaTypeGuessable -> {
+                val type = psi.guessTypeFromCache(SearchContext(psi.project))
+                var isFn = false
+                TyUnion.each(type) {
+                    if (it is ITyFunction) {
+                        isFn = true
+                        addTy(it)
+                    }
+                }
+                if (!isFn) {
+                    val cls = TyUnion.getPerfectClass(type)
+                    if (cls != null) {
+                        var icon = LuaIcons.LOCAL_VAR
+                        if (psi is LuaParamNameDef)
+                            icon = LuaIcons.PARAMETER
+
+                        val elementBuilder = LuaTypeGuessableLookupElement(name, psi, cls, false, icon)
+                        session.resultSet.addElement(elementBuilder)
+                    }
+                }
+            }
+        }
+    }
+
     override fun addCompletions(completionParameters: CompletionParameters, processingContext: ProcessingContext, completionResultSet: CompletionResultSet) {
         val session = completionParameters.editor.getUserData(CompletionSession.KEY)!!
+        val cur = completionParameters.position
+        val nameExpr = cur.parent
+
+        //module members
+        if (nameExpr is LuaNameExpr) {
+            val moduleName = nameExpr.moduleName
+            if (moduleName != null) {
+                val ty = TyLazyClass(moduleName)
+                val contextTy = LuaPsiTreeUtil.findContextClass(nameExpr)
+                addClass(contextTy, ty, cur.project, true, completionResultSet, completionResultSet.prefixMatcher, null)
+            }
+        }
+
+        //local names
+        val localNamesSet = mutableSetOf<String>()
 
         //local
-        val cur = completionParameters.position
-        if (has(LOCAL_VAR)) {
-            LuaPsiTreeUtil.walkUpLocalNameDef(cur) { nameDef ->
-                val name = nameDef.text
-                if (completionResultSet.prefixMatcher.prefixMatches(name)) {
+        if (has(LOCAL_FUN) || has(LOCAL_VAR)) {
+            LuaPsiTreeUtilEx.walkUpNameDef(cur, Processor { nameDef ->
+                val name = nameDef.name
+                if (nameDef is LuaPsiElement &&
+                        name != null &&
+                        completionResultSet.prefixMatcher.prefixMatches(name) &&
+                        localNamesSet.add(name)) {
                     session.addWord(name)
-                    var icon = LuaIcons.LOCAL_VAR
-                    if (nameDef is LuaParamNameDef)
-                        icon = LuaIcons.PARAMETER
-
-                    val elementBuilder = LuaTypeGuessableLookupElement(name, nameDef, false, icon)
-                    completionResultSet.addElement(elementBuilder)
+                    addCompletion(name, session, nameDef)
                 }
                 true
-            }
-        }
-        if (has(LOCAL_FUN)) {
-            LuaPsiTreeUtil.walkUpLocalFuncDef(cur) { localFuncDef ->
-                val name = localFuncDef.name
-                if (name != null && completionResultSet.prefixMatcher.prefixMatches(name)) {
-                    session.addWord(name)
-                    LuaPsiImplUtil.processOptional(localFuncDef.params) { signature, mask ->
-                        val elementBuilder = LocalFunctionLookupElement(name, signature, localFuncDef)
-                        elementBuilder.setHandler(FuncInsertHandler(localFuncDef).withMask(mask))
-                        completionResultSet.addElement(elementBuilder)
-                    }
-                }
-                true
-            }
+            })
         }
 
-        //global functions
+        //global
         val project = cur.project
-        if (has(GLOBAL_FUN)) {
-            val context = SearchContext(project)
-            LuaGlobalFuncIndex.getInstance().processAllKeys(project) { name ->
-                if (completionResultSet.prefixMatcher.prefixMatches(name)) {
-                    val globalFuncDef = LuaGlobalFuncIndex.find(name, context)
-                    if (globalFuncDef != null) {
-                        session.addWord(name)
-
-                        LuaPsiImplUtil.processOptional(globalFuncDef.params) { signature, mask ->
-                            val elementBuilder = GlobalFunctionLookupElement(name, signature, globalFuncDef)
-                            elementBuilder.setHandler(GlobalFuncInsertHandler(name, project).withMask(mask))
-                            completionResultSet.addElement(elementBuilder)
-                        }
-                    }
-                }
-                true
-            }
-        }
-        //global fields
-        if (has(GLOBAL_VAR)) {
-            val context = SearchContext(project)
-            LuaGlobalVarIndex.getInstance().processAllKeys(project) { name ->
-                if (completionResultSet.prefixMatcher.prefixMatches(name)) {
-                    val globalVar = LuaGlobalVarIndex.find(name, context)
-                    if (globalVar != null) {
-                        session.addWord(name)
-                        val elementBuilder = LuaTypeGuessableLookupElement(name, globalVar, false, LuaIcons.GLOBAL_FIELD)
-                        completionResultSet.addElement(elementBuilder)
-                    }
-                }
-                true
-            }
+        if (has(GLOBAL_FUN) || has(GLOBAL_VAR)) {
+            addClass(TyClass.G, TyClass.G, project, false, completionResultSet, completionResultSet.prefixMatcher, null)
         }
         //key words
         if (has(KEY_WORDS)) {
-            val keywords = TokenSet.orSet(KEYWORD_TOKENS, LuaSyntaxHighlighter.PRIMITIVE_TYPE_SET)
-            for (keyWordToken in keywords.types) {
+            for (keyWordToken in KEYWORD_TOKENS.types) {
                 session.addWord(keyWordToken.toString())
 
                 completionResultSet.addElement(LookupElementBuilder.create(keyWordToken)
                         .withInsertHandler(KeywordInsertHandler(keyWordToken))
                 )
+            }
+            for (primitiveToken in LuaSyntaxHighlighter.PRIMITIVE_TYPE_SET.types) {
+                session.addWord(primitiveToken.toString())
+                completionResultSet.addElement(LookupElementBuilder.create(primitiveToken))
             }
             completionResultSet.addElement(LookupElementBuilder.create(Constants.WORD_SELF))
         }

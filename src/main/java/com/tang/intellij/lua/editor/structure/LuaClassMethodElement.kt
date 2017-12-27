@@ -18,21 +18,11 @@ package com.tang.intellij.lua.editor.structure
 
 import com.tang.intellij.lua.lang.LuaIcons
 import com.tang.intellij.lua.psi.LuaClassMethodDef
+import com.tang.intellij.lua.psi.LuaPsiElement
+import com.tang.intellij.lua.psi.Visibility
 
-/**
-
- * Created by TangZX on 2016/12/13.
- */
-class LuaClassMethodElement internal constructor(methodDef: LuaClassMethodDef) : LuaTreeElement<LuaClassMethodDef>(methodDef, LuaIcons.CLASS_METHOD) {
-
-    private val methodName: String
-
-    init {
-        val methodName = methodDef.classMethodName
-        this.methodName = methodName.text + methodDef.paramSignature
-    }
-
-    override fun getPresentableText(): String {
-        return methodName
-    }
+class LuaClassMethodElement constructor(target: LuaPsiElement, name: String, paramSignature: String, visibility: Visibility = Visibility.PUBLIC)
+    : LuaFuncElement(target, name, paramSignature, visibility.warpIcon(LuaIcons.CLASS_METHOD)) {
+    internal constructor(target: LuaClassMethodDef, visibility: Visibility) : this(target, target.name!!, target.paramSignature, visibility)
 }
+

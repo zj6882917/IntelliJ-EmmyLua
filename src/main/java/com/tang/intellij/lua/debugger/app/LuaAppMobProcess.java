@@ -16,9 +16,11 @@
 
 package com.tang.intellij.lua.debugger.app;
 
+import com.intellij.execution.configurations.GeneralCommandLine;
 import com.intellij.execution.process.OSProcessHandler;
 import com.intellij.execution.process.ProcessEvent;
 import com.intellij.execution.process.ProcessListener;
+import com.intellij.execution.process.ProcessOutputTypes;
 import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
@@ -30,12 +32,9 @@ import com.tang.intellij.lua.debugger.remote.LuaMobDebugProcess;
 import com.tang.intellij.lua.psi.LuaFileUtil;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
-
 class LuaAppMobProcess extends LuaMobDebugProcess {
     private final LuaAppRunConfiguration configuration;
-    private Process process;
-    private boolean isStoped;
+    private boolean isStopped;
 
     LuaAppMobProcess(@NotNull XDebugSession session) {
         super(session);
@@ -58,17 +57,16 @@ class LuaAppMobProcess extends LuaMobDebugProcess {
             }
         }
 
-        ProcessBuilder builder = new ProcessBuilder(configuration.getProgram(),
-                "-e",
-                String.format("package.path = package.path .. ';%s' require('mobdebug').start()", setupPackagePath.toString()),
-                configuration.getFile());
+        GeneralCommandLine commandLine = new GeneralCommandLine(configuration.getProgram());
+        commandLine.addParameters("-e", String.format("package.path = package.path .. ';%s' require('mobdebug').start()", setupPackagePath.toString()));
+        commandLine.addParameters(configuration.getFile());
+
         String dir = configuration.getWorkingDir();
         if (dir != null && !dir.isEmpty())
-            builder.directory(new File(dir));
+            commandLine.setWorkDirectory(dir);
 
         try {
-            process = builder.start();
-            OSProcessHandler handler = new OSProcessHandler(process, null);
+            OSProcessHandler handler = new OSProcessHandler(commandLine);
             handler.addProcessListener(new ProcessListener() {
                 @Override
                 public void startNotified(ProcessEvent processEvent) {
@@ -77,7 +75,7 @@ class LuaAppMobProcess extends LuaMobDebugProcess {
 
                 @Override
                 public void processTerminated(ProcessEvent processEvent) {
-                    if (!isStoped)
+                    if (!isStopped)
                         getSession().stop();
                 }
 
@@ -88,23 +86,23 @@ class LuaAppMobProcess extends LuaMobDebugProcess {
 
                 @Override
                 public void onTextAvailable(ProcessEvent processEvent, Key key) {
-                    print(processEvent.getText());
+                    if (key == ProcessOutputTypes.STDOUT) {
+                        print(processEvent.getText(), ConsoleViewContentType.NORMAL_OUTPUT);
+                    } else if (key == ProcessOutputTypes.STDERR) {
+                        error(processEvent.getText());
+                    }
                 }
             });
             handler.startNotify();
         } catch (Exception e) {
-            getSession().getConsoleView().print(e.getMessage(), ConsoleViewContentType.ERROR_OUTPUT);
+            error(e.getMessage());
             getSession().stop();
         }
     }
 
     @Override
     public void stop() {
-        isStoped = true;
+        isStopped = true;
         super.stop();
-        if (process != null) {
-            process.destroy();
-            process = null;
-        }
     }
 }

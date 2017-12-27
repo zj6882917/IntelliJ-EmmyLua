@@ -5,8 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
-import com.tang.intellij.lua.lang.type.LuaType;
-import com.tang.intellij.lua.search.SearchContext;
+import com.tang.intellij.lua.ty.ITy;
 
 public interface LuaDocClassNameRef extends LuaDocPsiElement {
 
@@ -16,7 +15,7 @@ public interface LuaDocClassNameRef extends LuaDocPsiElement {
   @NotNull
   PsiReference getReference();
 
-  @Nullable
-  LuaType resolveType(SearchContext context);
+  @NotNull
+  ITy resolveType();
 
 }

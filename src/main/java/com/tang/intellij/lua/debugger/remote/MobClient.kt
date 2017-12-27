@@ -16,6 +16,7 @@
 
 package com.tang.intellij.lua.debugger.remote
 
+import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.util.TimeoutUtil
 import com.intellij.util.io.BaseOutputReader
@@ -52,7 +53,7 @@ class MobClient(val socket: Socket, val listener: MobServerListener) {
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                //e.printStackTrace()
             } finally {
                 onSocketClosed()
             }
@@ -80,7 +81,6 @@ class MobClient(val socket: Socket, val listener: MobServerListener) {
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
                 streamWriter = OutputStreamWriter(socket.getOutputStream(), Charset.forName("UTF-8"))
-                var firstTime = true
 
                 while (socket.isConnected) {
                     if (isStopped) break
@@ -97,16 +97,12 @@ class MobClient(val socket: Socket, val listener: MobServerListener) {
                                 currentCommandWaitForResp = command
                         }
                     }
-                    if (firstTime) {
-                        firstTime = false
-                        addCommand("RUN")
-                    }
                     Thread.sleep(5)
                 }
-
-                listener.println("Disconnected.")
             } catch (e: Exception) {
-                e.printStackTrace()
+                //e.printStackTrace()
+            } finally {
+                listener.println("Disconnected.", ConsoleViewContentType.SYSTEM_OUTPUT)
             }
         }
     }

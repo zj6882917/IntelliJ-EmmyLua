@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:Suppress("UNUSED_PARAMETER")
+
 package com.tang.intellij.lua.comment.psi
 
 import com.intellij.icons.AllIcons
@@ -23,14 +25,14 @@ import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.PsiReference
 import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.stubs.StubElement
+import com.intellij.psi.util.PsiTreeUtil
 import com.tang.intellij.lua.comment.reference.LuaClassNameReference
 import com.tang.intellij.lua.comment.reference.LuaDocParamNameReference
-import com.tang.intellij.lua.lang.type.LuaType
-import com.tang.intellij.lua.lang.type.LuaTypeSet
+import com.tang.intellij.lua.comment.reference.LuaDocSeeReference
 import com.tang.intellij.lua.psi.LuaElementFactory
-import com.tang.intellij.lua.psi.aliasName
+import com.tang.intellij.lua.psi.Visibility
 import com.tang.intellij.lua.search.SearchContext
-import com.tang.intellij.lua.stubs.index.LuaClassIndex
+import com.tang.intellij.lua.ty.*
 import javax.swing.Icon
 
 /**
@@ -45,12 +47,8 @@ fun getReference(docClassNameRef: LuaDocClassNameRef): PsiReference {
     return LuaClassNameReference(docClassNameRef)
 }
 
-fun resolveType(nameRef: LuaDocClassNameRef, context: SearchContext): LuaType? {
-    val classDef = LuaClassIndex.find(nameRef.text, context)
-    if (classDef != null) {
-        return classDef.classType
-    }
-    return null
+fun resolveType(nameRef: LuaDocClassNameRef): ITy {
+    return Ty.getBuiltin(nameRef.text) ?: TyLazyClass(nameRef.text)
 }
 
 fun getName(identifierOwner: PsiNameIdentifierOwner): String? {
@@ -61,7 +59,7 @@ fun getName(identifierOwner: PsiNameIdentifierOwner): String? {
 fun setName(identifierOwner: PsiNameIdentifierOwner, newName: String): PsiElement {
     val oldId = identifierOwner.nameIdentifier
     if (oldId != null) {
-        val newId = LuaElementFactory.createIdentifier(identifierOwner.project, newName)
+        val newId = LuaElementFactory.createDocIdentifier(identifierOwner.project, newName)
         oldId.replace(newId)
         return newId
     }
@@ -81,11 +79,26 @@ fun getNameIdentifier(classDef: LuaDocClassDef): PsiElement {
     return classDef.id
 }
 
-fun guessType(fieldDef: LuaDocFieldDef, context: SearchContext): LuaTypeSet? {
+fun guessType(fieldDef: LuaDocFieldDef, context: SearchContext): ITy {
     val stub = fieldDef.stub
     if (stub != null)
         return stub.type
-    return resolveDocTypeSet(fieldDef.typeSet, null, context)
+    return fieldDef.ty?.getType() ?: Ty.UNKNOWN
+}
+
+fun guessParentType(fieldDef: LuaDocFieldDef, context: SearchContext): ITy {
+    val parent = fieldDef.parent
+    val classDef = PsiTreeUtil.findChildOfType(parent, LuaDocClassDef::class.java)
+    return classDef?.type ?: Ty.UNKNOWN
+}
+
+fun getVisibility(fieldDef: LuaDocFieldDef): Visibility {
+    val stub = fieldDef.stub
+    if (stub != null)
+        return stub.visibility
+
+    val v = fieldDef.accessModifier?.let { Visibility.get(it.text) }
+    return v ?: Visibility.PUBLIC
 }
 
 /**
@@ -94,45 +107,25 @@ fun guessType(fieldDef: LuaDocFieldDef, context: SearchContext): LuaTypeSet? {
  * *
  * @return 类型集合
  */
-fun guessType(paramDec: LuaDocParamDef, context: SearchContext): LuaTypeSet? {
-    val docTypeSet = paramDec.typeSet ?: return null
-    return resolveDocTypeSet(docTypeSet, null, context)
+fun getType(paramDec: LuaDocParamDef): ITy {
+    return paramDec.ty?.getType() ?: return Ty.UNKNOWN
 }
 
 /**
  * 获取返回类型
  * @param returnDef 返回定义
- * *
- * @param index 索引
- * *
+ *
  * @return 类型集合
  */
-fun resolveTypeAt(returnDef: LuaDocReturnDef, index: Int, context: SearchContext): LuaTypeSet {
-    val typeSet = LuaTypeSet.create()
+fun resolveTypeAt(returnDef: LuaDocReturnDef, index: Int): ITy {
     val typeList = returnDef.typeList
     if (typeList != null) {
-        val typeSetList = typeList.typeSetList
-        val docTypeSet = typeSetList[index]
-        resolveDocTypeSet(docTypeSet, typeSet, context)
-    }
-    return typeSet
-}
-
-fun resolveDocTypeSet(docTypeSet: LuaDocTypeSet?, set: LuaTypeSet?, context: SearchContext): LuaTypeSet? {
-    var typeSet = set
-    if (typeSet == null) typeSet = LuaTypeSet.create()
-    if (docTypeSet != null) {
-        val classNameRefList = docTypeSet.classNameRefList
-        for (classNameRef in classNameRefList) {
-            val def = LuaClassIndex.find(classNameRef.text, context)
-            if (def != null) {
-                typeSet.addType(def.classType)
-            } else {
-                typeSet.addType(LuaType.create(classNameRef.text, null))
-            }
+        val list = typeList.tyList
+        if (list.size > index) {
+            return list[index].getType()
         }
     }
-    return typeSet
+    return Ty.UNKNOWN
 }
 
 /**
@@ -170,22 +163,9 @@ fun getPresentation(classDef: LuaDocClassDef): ItemPresentation {
     }
 }
 
-fun getClassType(classDef: LuaDocClassDef): LuaType {
+fun getType(classDef: LuaDocClassDef): ITyClass {
     val stub = classDef.stub
-    val luaType: LuaType
-    if (stub != null) {
-        luaType = stub.classType
-    } else {
-        val clazzName = classDef.name
-        var superClassName: String? = null
-        val supperRef = classDef.superClassNameRef
-        if (supperRef != null)
-            superClassName = supperRef.text
-
-        luaType = LuaType.create(clazzName, superClassName)
-        luaType.aliasName = classDef.aliasName
-    }
-    return luaType
+    return stub?.classType ?: TyPsiDocClass(classDef)
 }
 
 /**
@@ -194,8 +174,8 @@ fun getClassType(classDef: LuaDocClassDef): LuaType {
  * *
  * @return 类型集合
  */
-fun guessType(typeDef: LuaDocTypeDef, context: SearchContext): LuaTypeSet? {
-    return resolveDocTypeSet(typeDef.typeSet, null, context)
+fun getType(typeDef: LuaDocTypeDef): ITy {
+    return typeDef.ty?.getType() ?: Ty.UNKNOWN
 }
 
 @Suppress("UNUSED_PARAMETER")
@@ -231,4 +211,44 @@ fun getPresentation(fieldDef: LuaDocFieldDef): ItemPresentation {
             return AllIcons.Nodes.Field
         }
     }
+}
+
+fun getType(luaDocArrTy: LuaDocArrTy): ITy {
+    val baseTy = luaDocArrTy.ty.getType()
+    return TyArray(baseTy)
+}
+
+fun getType(luaDocGeneralTy: LuaDocGeneralTy): ITy {
+    return resolveType(luaDocGeneralTy.classNameRef)
+}
+
+fun getType(luaDocFunctionTy: LuaDocFunctionTy): ITy {
+    return TyDocPsiFunction(luaDocFunctionTy)
+}
+
+fun getReturnType(luaDocFunctionTy: LuaDocFunctionTy): ITy {
+    val set = luaDocFunctionTy.typeList?.tyList?.firstOrNull()
+    return set?.getType() ?: Ty.VOID
+}
+
+fun getType(luaDocGenericTy: LuaDocGenericTy): ITy {
+    return TyDocGeneric(luaDocGenericTy)
+}
+
+fun getType(luaDocParTy: LuaDocParTy): ITy {
+    return luaDocParTy.ty?.getType() ?: Ty.UNKNOWN
+}
+
+fun getType(unionTy: LuaDocUnionTy): ITy {
+    val list = unionTy.tyList
+    var retTy: ITy = Ty.UNKNOWN
+    for (ty in list) {
+        retTy = retTy.union(ty.getType())
+    }
+    return retTy
+}
+
+fun getReference(see: LuaDocSeeRefTag): PsiReference? {
+    if (see.id == null) return null
+    return LuaDocSeeReference(see)
 }

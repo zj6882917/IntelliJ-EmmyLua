@@ -31,4 +31,23 @@ public class LuaLabelStatImpl extends LuaStatementImpl implements LuaLabelStat {
     return findChildByType(ID);
   }
 
+  @Nullable
+  public PsiElement getNameIdentifier() {
+    return LuaPsiImplUtilKt.getNameIdentifier(this);
+  }
+
+  public int getTextOffset() {
+    return LuaPsiImplUtilKt.getTextOffset(this);
+  }
+
+  @NotNull
+  public PsiElement setName(String name) {
+    return LuaPsiImplUtilKt.setName(this, name);
+  }
+
+  @Nullable
+  public String getName() {
+    return LuaPsiImplUtilKt.getName(this);
+  }
+
 }

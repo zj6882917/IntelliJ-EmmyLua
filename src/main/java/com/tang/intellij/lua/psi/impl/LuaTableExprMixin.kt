@@ -20,25 +20,17 @@ import com.intellij.extapi.psi.StubBasedPsiElementBase
 import com.intellij.lang.ASTNode
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.tree.IElementType
-import com.tang.intellij.lua.lang.type.LuaTableType
-import com.tang.intellij.lua.lang.type.LuaTypeSet
-import com.tang.intellij.lua.psi.LuaExpression
-import com.tang.intellij.lua.psi.LuaTableExpr
-import com.tang.intellij.lua.search.SearchContext
-import com.tang.intellij.lua.stubs.LuaTableStub
+import com.tang.intellij.lua.psi.LuaExpr
+import com.tang.intellij.lua.stubs.LuaTableExprStub
 
 /**
 
  * Created by Administrator on 2017/6/21.
  */
-open class LuaTableExprMixin : StubBasedPsiElementBase<LuaTableStub>, LuaExpression {
-    constructor(stub: LuaTableStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
+open class LuaTableExprMixin : StubBasedPsiElementBase<LuaTableExprStub>, LuaExpr {
+    constructor(stub: LuaTableExprStub, nodeType: IStubElementType<*, *>) : super(stub, nodeType)
 
     constructor(node: ASTNode) : super(node)
 
-    constructor(stub: LuaTableStub, nodeType: IElementType, node: ASTNode) : super(stub, nodeType, node)
-
-    override fun guessType(context: SearchContext): LuaTypeSet {
-        return LuaTypeSet.create(LuaTableType.create(this as LuaTableExpr))
-    }
+    constructor(stub: LuaTableExprStub, nodeType: IElementType, node: ASTNode) : super(stub, nodeType, node)
 }

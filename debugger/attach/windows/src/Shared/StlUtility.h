@@ -60,6 +60,8 @@ void ReplaceAll(std::string& string, const std::string& find, const std::string&
  */
 std::string TrimSpaces(const std::string& string);
 
+std::string FixFileName(const std::string & fileName);
+
 /**
  * Returns the directory component of a file name. The returned directory
  * does not end in a slash.
@@ -70,5 +72,7 @@ std::string GetDirectory(const std::string& fileName);
  * Returns true if the character is a slash (/ or \)
  */
 bool GetIsSlash(char c);
+
+void CopyString(std::string & dst, const char* data, size_t size);
 
 #endif

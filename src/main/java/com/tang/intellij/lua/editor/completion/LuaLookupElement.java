@@ -40,18 +40,18 @@ public class LuaLookupElement extends LookupElement implements Comparable<Lookup
     private boolean itemTextUnderlined;
 
     public static void fillTypes(Project project, Collection<LookupElement> results) {
-        Collection<String> collection = LuaClassIndex.getInstance().getAllKeys(project);
-        collection.forEach(className -> {
-            results.add(LookupElementBuilder.create(className).withIcon(LuaIcons.CLASS));
+        LuaClassIndex.Companion.processKeys(project, key -> {
+            results.add(LookupElementBuilder.create(key).withIcon(LuaIcons.CLASS));
+            return true;
         });
     }
 
-
-    private final String myLookupString;
-    private final String myTypeText;
-    private final boolean isBold;
-    private final Icon myIcon;
-    private final Icon myTypeIcon;
+    private String myLookupString;
+    private String myItemString;
+    private String myTypeText;
+    private boolean isBold;
+    private Icon myIcon;
+    private Icon myTypeIcon;
     private String myTailText;
     private InsertHandler<LookupElement> myHandler;
 
@@ -70,14 +70,6 @@ public class LuaLookupElement extends LookupElement implements Comparable<Lookup
         myHandler = handler;
     }
 
-    public LuaLookupElement(@NotNull final String lookupString,
-                            @Nullable final String tailText,
-                            @Nullable final String typeText, final boolean bold,
-                            @Nullable final Icon icon,
-                            @Nullable final Icon typeIcon) {
-        this(lookupString, tailText, typeText, bold, icon, typeIcon, new BasicInsertHandler<>());
-    }
-
     public LuaLookupElement(
             @NotNull final String lookupString,
             final boolean bold,
@@ -90,9 +82,19 @@ public class LuaLookupElement extends LookupElement implements Comparable<Lookup
         return myLookupString;
     }
 
+    public void setLookupString(String value) {
+        myLookupString = value;
+    }
+
     @NotNull
     public String getItemText() {
-        return getLookupString();
+        if (myItemString != null)
+            return myItemString;
+        return myLookupString;
+    }
+
+    public void setItemText(String myItemString) {
+        this.myItemString = myItemString;
     }
 
     public void setItemTextUnderlined(boolean itemTextUnderlined) {
@@ -113,6 +115,14 @@ public class LuaLookupElement extends LookupElement implements Comparable<Lookup
         return !StringUtil.isEmpty(myTypeText) ? myTypeText : null;
     }
 
+    protected void setTypeText(String value) {
+        myTypeText = value;
+    }
+
+    public void setIcon(Icon icon) {
+        myIcon = icon;
+    }
+
     public Icon getIcon() {
         return myIcon;
     }
@@ -128,6 +138,10 @@ public class LuaLookupElement extends LookupElement implements Comparable<Lookup
 
     public void setHandler(InsertHandler<LookupElement> handler) {
         myHandler = handler;
+    }
+
+    public InsertHandler<LookupElement> getHandler() {
+        return myHandler;
     }
 
     @Override

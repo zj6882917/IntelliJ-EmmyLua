@@ -33,10 +33,10 @@
     <ClCompile Include="Shared\StlUtility.cpp">
       <Filter>头文件\Shared</Filter>
     </ClCompile>
-    <ClCompile Include="Shared\XmlUtility.cpp">
+    <ClCompile Include="Shared\Utility.cpp">
       <Filter>头文件\Shared</Filter>
     </ClCompile>
-    <ClCompile Include="Shared\Utility.cpp">
+    <ClCompile Include="Shared\WindowUtility.cpp">
       <Filter>头文件\Shared</Filter>
     </ClCompile>
   </ItemGroup>
@@ -59,10 +59,10 @@
     <ClInclude Include="Shared\StlUtility.h">
       <Filter>头文件\Shared</Filter>
     </ClInclude>
-    <ClInclude Include="Shared\XmlUtility.h">
+    <ClInclude Include="Shared\Utility.h">
       <Filter>头文件\Shared</Filter>
     </ClInclude>
-    <ClInclude Include="Shared\Utility.h">
+    <ClInclude Include="Shared\WindowUtility.h">
       <Filter>头文件\Shared</Filter>
     </ClInclude>
   </ItemGroup>

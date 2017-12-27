@@ -18,119 +18,139 @@ package com.tang.intellij.lua.editor.formatter.blocks
 
 import com.intellij.formatting.*
 import com.intellij.lang.ASTNode
+import com.intellij.psi.PsiComment
+import com.intellij.psi.PsiElement
 import com.intellij.psi.TokenType
 import com.intellij.psi.formatter.common.AbstractBlock
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
-import com.tang.intellij.lua.psi.LuaTypes
-
-import java.util.ArrayList
-
+import com.tang.intellij.lua.editor.formatter.LuaFormatContext
+import com.tang.intellij.lua.psi.*
 import com.tang.intellij.lua.psi.LuaTypes.*
+import java.util.*
 
 /**
 
  * Created by tangzx on 2016/12/3.
  */
-open class LuaScriptBlock(private val parent: LuaScriptBlock?,
-                          node: ASTNode,
+open class LuaScriptBlock(val psi: PsiElement,
                           wrap: Wrap?,
                           private val alignment: Alignment?,
                           private val indent: Indent,
-                          private val spacingBuilder: SpacingBuilder) : AbstractBlock(node, wrap, alignment) {
+                          val ctx: LuaFormatContext) : AbstractBlock(psi.node, wrap, alignment) {
 
-    //不创建 ASTBlock
-    private val fakeBlockSet = TokenSet.create(
-            BLOCK
-    )
+    companion object {
+        //不创建 ASTBlock
+        private val fakeBlockSet = TokenSet.create(BLOCK)
 
-    //回车时
-    private val childAttrSet = TokenSet.orSet(fakeBlockSet, TokenSet.create(
-            IF_STAT,
-            DO_STAT,
-            FUNC_BODY,
-            FOR_A_STAT,
-            FOR_B_STAT,
-            REPEAT_STAT,
-            WHILE_STAT,
-            TABLE_EXPR,
-            ARGS
-    ))
-
-    private val elementType: IElementType = node.elementType
-
-    private fun shouldCreateBlockFor(node: ASTNode): Boolean {
-        return node.textRange.length != 0 && node.elementType !== TokenType.WHITE_SPACE
+        //回车时
+        private val childAttrSet = TokenSet.orSet(fakeBlockSet, TokenSet.create(
+                IF_STAT,
+                DO_STAT,
+                FUNC_BODY,
+                FOR_A_STAT,
+                FOR_B_STAT,
+                REPEAT_STAT,
+                WHILE_STAT,
+                TABLE_EXPR,
+                ARGS
+        ))
     }
+
+    protected var childBlocks:List<LuaScriptBlock>? = null
+    val elementType: IElementType = node.elementType
+
+    private var next: LuaScriptBlock? = null
+    private var prev: LuaScriptBlock? = null
+
+    val nextBlock get() = next
+    val prevBlock get() = prev
+
+    protected fun getPrevSkipComment(): LuaScriptBlock? =
+            if (prev?.psi is PsiComment) prev?.getPrevSkipComment() else prev
+
+    protected fun getNextSkipComment(): LuaScriptBlock? =
+            if (next?.psi is PsiComment) next?.getNextSkipComment() else next
+
+    private var parent: LuaScriptBlock? = null
+    val parentBlock get() = parent
+
+    private fun shouldCreateBlockFor(node: ASTNode) =
+            node.textRange.length != 0 && node.elementType !== TokenType.WHITE_SPACE
 
     override fun buildChildren(): List<Block> {
-        val blocks = ArrayList<Block>()
-        buildChildren(myNode, blocks)
-        return blocks
+        if (childBlocks == null) {
+            val blocks = ArrayList<LuaScriptBlock>()
+            buildChildren(myNode.psi, blocks)
+            childBlocks = blocks
+            var prev: LuaScriptBlock? = null
+            blocks.forEach {
+                it.prev = prev
+                prev?.next = it
+                prev = it
+            }
+            postBuildChildren(blocks)
+        }
+        return childBlocks!!
     }
 
-    private fun buildChildren(parent: ASTNode, results: MutableList<Block>) {
-        var child: ASTNode? = parent.firstChildNode
-        val parentType = parent.elementType
-        var childIndent = Indent.getNoneIndent()
-        if (fakeBlockSet.contains(parentType)) {
-            childIndent = Indent.getNormalIndent()
-        }
+    protected open fun postBuildChildren(children: List<LuaScriptBlock>) {
 
-        while (child != null) {
-            val childType = child.elementType
-            if (parentType == TABLE_EXPR ) {
-                if (childType != LCURLY && childType != RCURLY)
-                    childIndent = Indent.getNormalIndent()
-                else
-                    childIndent = Indent.getNoneIndent()
-            }
+    }
 
+    private fun buildChildren(parent: PsiElement, results: MutableList<LuaScriptBlock>) {
+        LuaPsiTreeUtil.processChildren(parent) { child ->
+            val childType = child.node.elementType
             if (fakeBlockSet.contains(childType)) {
-                buildChildren(child, results)
-            } else if (shouldCreateBlockFor(child)) {
-                results.add(createBlock(child, childIndent, null))
+                LuaPsiTreeUtil.processChildren(child) {
+                    if (shouldCreateBlockFor(it.node))
+                        results.add(buildChild(it, Indent.getNormalIndent()))
+                    true
+                }
+            } else if (shouldCreateBlockFor(child.node)) {
+                results.add(buildChild(child))
             }
-            child = child.treeNext
+            true
         }
     }
 
-    private fun createBlock(node: ASTNode, childIndent: Indent, alignment: Alignment?): LuaScriptBlock {
-        if (node.elementType === UNARY_EXPR)
-            return LuaUnaryScriptBlock(this, node, null, alignment, childIndent, spacingBuilder)
-        if (node.elementType === BINARY_EXPR)
-            return LuaBinaryScriptBlock(this, node, null, alignment, childIndent, spacingBuilder)
-        return LuaScriptBlock(this, node, null, alignment, childIndent, spacingBuilder)
+    protected open fun buildChild(child:PsiElement, indent: Indent? = null): LuaScriptBlock {
+        val childIndent = indent ?: Indent.getNoneIndent()
+        return createBlock(child, childIndent, null)
+    }
+
+    protected fun createBlock(element: PsiElement, childIndent: Indent, alignment: Alignment? = null, wrap: Wrap? = null): LuaScriptBlock {
+        val block = when (element) {
+            is LuaUnaryExpr -> LuaUnaryExprBlock(element, wrap, alignment, childIndent, ctx)
+            is LuaBinaryExpr -> LuaBinaryExprBlock(element, wrap, alignment, childIndent, ctx)
+            is LuaParenExpr -> LuaParenExprBlock(element, wrap, alignment, childIndent, ctx)
+            is LuaListArgs -> LuaListArgsBlock(element, wrap, alignment, childIndent, ctx)
+            is LuaFuncBody -> LuaFuncBodyBlock(element, wrap, alignment, childIndent, ctx)
+            is LuaTableExpr -> LuaTableBlock(element, wrap, alignment, childIndent, ctx)
+            is LuaCallExpr -> LuaCallExprBlock(element, wrap, alignment, childIndent, ctx)
+            is LuaIndentRange -> LuaIndentBlock(element, wrap, alignment, childIndent, ctx)
+            is LuaIndexExpr -> LuaIndexExprBlock(element, wrap, alignment, childIndent, ctx)
+            is LuaAssignStat,
+            is LuaLocalDef -> LuaAssignBlock(element, wrap, alignment, childIndent, ctx)
+            else -> LuaScriptBlock(element, wrap, alignment, childIndent, ctx)
+        }
+        block.parent = this
+        return block
     }
 
     override fun getSpacing(child1: Block?, child2: Block): Spacing? {
-        if (this.myNode.elementType === CALL_EXPR) {
-            if (child1 is LuaScriptBlock) {
-                val c2 = child2 as LuaScriptBlock
-
-                // call(param)
-                if (c2.myNode.findChildByType(LuaTypes.LPAREN) != null) {
-                    return Spacing.createSpacing(0, 0, 0, false, 0)
-                } else {
-                    return Spacing.createSpacing(1, 1, 0, false, 0)
-                }// call "string"
-            }
+        if ((child1 is LuaScriptBlock && child1.psi is LuaStatement) &&
+                (child2 is LuaScriptBlock && child2.psi is LuaStatement)) {
+            return Spacing.createSpacing(1, 0, 1, true, 1)
         }
-
-        return spacingBuilder.getSpacing(this, child1, child2)
+        return ctx.spaceBuilder.getSpacing(this, child1, child2)
     }
 
-    override fun getAlignment(): Alignment? {
-        return alignment
-    }
+    override fun getAlignment() = alignment
 
-    override fun isLeaf(): Boolean {
-        return myNode.firstChildNode == null
-    }
+    override fun isLeaf() = myNode.firstChildNode == null
 
-    override fun getIndent(): Indent? {
-        return indent
-    }
+    override fun getIndent() = indent
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
         if (childAttrSet.contains(elementType))

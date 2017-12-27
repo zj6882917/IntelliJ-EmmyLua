@@ -18,7 +18,6 @@ package com.tang.intellij.lua.annotator
 
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
-import com.intellij.openapi.editor.DefaultLanguageHighlighterColors
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.searches.ReferencesSearch
@@ -37,12 +36,15 @@ class LuaAnnotator : Annotator {
     private val luaVisitor = LuaElementVisitor()
     private val docVisitor = LuaDocElementVisitor()
     private val STD_MARKER = Key.create<Boolean>("lua.std.marker")
+    private var isModuleFile: Boolean = false
 
     override fun annotate(psiElement: PsiElement, annotationHolder: AnnotationHolder) {
         myHolder = annotationHolder
         if (psiElement is LuaDocPsiElement) {
             psiElement.accept(docVisitor)
         } else if (psiElement is LuaPsiElement) {
+            val psiFile = psiElement.containingFile
+            isModuleFile = if (psiFile is LuaPsiFile) { psiFile.moduleName != null } else false
             psiElement.accept(luaVisitor)
         }
         myHolder = null
@@ -50,8 +52,8 @@ class LuaAnnotator : Annotator {
 
     internal inner class LuaElementVisitor : LuaVisitor() {
 
-        override fun visitUncompletedStat(o: LuaUncompletedStat) {
-            myHolder!!.createErrorAnnotation(o, "Uncompleted")
+        override fun visitIncompleteStat(o: LuaIncompleteStat) {
+            myHolder!!.createErrorAnnotation(o, "syntax error")
         }
 
         override fun visitLocalFuncDef(o: LuaLocalFuncDef) {
@@ -87,11 +89,11 @@ class LuaAnnotator : Annotator {
             }
         }
 
-        override fun visitGlobalFuncDef(o: LuaGlobalFuncDef) {
+        override fun visitFuncDef(o: LuaFuncDef) {
             val name = o.nameIdentifier
-            if (name != null) {
+            if (name != null && o.forwardDeclaration == null) {
                 val annotation = myHolder!!.createInfoAnnotation(name, null)
-                annotation.textAttributes = LuaHighlightingData.GLOBAL_FUNCTION
+                annotation.textAttributes = if (isModuleFile) LuaHighlightingData.INSTANCE_METHOD else LuaHighlightingData.GLOBAL_FUNCTION
             }
         }
 
@@ -121,7 +123,7 @@ class LuaAnnotator : Annotator {
         override fun visitNameExpr(o: LuaNameExpr) {
             val id = o.firstChild
 
-            val res = LuaPsiResolveUtil.resolve(o, SearchContext(o.project))
+            val res = resolve(o, SearchContext(o.project))
             if (res != null) { //std api highlighting
                 val containingFile = res.containingFile
                 if (LuaFileUtil.isStdLibFile(containingFile.virtualFile, o.project)) {
@@ -136,9 +138,11 @@ class LuaAnnotator : Annotator {
                 val annotation = myHolder!!.createInfoAnnotation(o, null)
                 annotation.textAttributes = LuaHighlightingData.PARAMETER
                 checkUpValue(o)
-            } else if (res is LuaGlobalFuncDef) {
+            } else if (res is LuaFuncDef) {
                 val annotation = myHolder!!.createInfoAnnotation(o, null)
-                annotation.textAttributes = LuaHighlightingData.GLOBAL_FUNCTION
+                val resolvedFile = res.containingFile
+                if (resolvedFile !is LuaPsiFile || resolvedFile.moduleName == null)
+                    annotation.textAttributes = LuaHighlightingData.GLOBAL_FUNCTION
             } else {
                 if (id.textMatches(Constants.WORD_SELF)) {
                     val annotation = myHolder!!.createInfoAnnotation(o, null)
@@ -148,16 +152,15 @@ class LuaAnnotator : Annotator {
                     val annotation = myHolder!!.createInfoAnnotation(o, null)
                     annotation.textAttributes = LuaHighlightingData.LOCAL_VAR
                     checkUpValue(o)
-                } else
-                /* if (res instanceof LuaNameRef) */ { // 未知的，视为Global
+                } else { // 未知的，视为Global
                     val annotation = myHolder!!.createInfoAnnotation(o, null)
-                    annotation.textAttributes = LuaHighlightingData.GLOBAL_VAR
+                    annotation.textAttributes = if (isModuleFile) LuaHighlightingData.FIELD else LuaHighlightingData.GLOBAL_VAR
                 }
             }
         }
 
         private fun checkUpValue(o: LuaNameExpr) {
-            val upValue = LuaPsiResolveUtil.isUpValue(o, SearchContext(o.project))
+            val upValue = isUpValue(o, SearchContext(o.project))
             if (upValue) {
                 val annotation = myHolder!!.createInfoAnnotation(o, null)
                 annotation.textAttributes = LuaHighlightingData.UP_VALUE
@@ -197,12 +200,12 @@ class LuaAnnotator : Annotator {
         override fun visitClassDef(o: LuaDocClassDef) {
             super.visitClassDef(o)
             val annotation = myHolder!!.createInfoAnnotation(o.id, null)
-            annotation.textAttributes = DefaultLanguageHighlighterColors.CLASS_NAME
+            annotation.textAttributes = LuaHighlightingData.CLASS_NAME
         }
 
         override fun visitClassNameRef(o: LuaDocClassNameRef) {
             val annotation = myHolder!!.createInfoAnnotation(o, null)
-            annotation.textAttributes = DefaultLanguageHighlighterColors.CLASS_REFERENCE
+            annotation.textAttributes = LuaHighlightingData.CLASS_REFERENCE
         }
 
         override fun visitFieldDef(o: LuaDocFieldDef) {

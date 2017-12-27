@@ -74,10 +74,28 @@ function xluaDebugger.GetValueAsText(ty, obj, depth, typeNameOverride, displayAs
     end
 end
 
+emmy = {}
+
 if tolua then
     emmy = toluaDebugger
 elseif xlua then
     emmy = xluaDebugger
+end
+
+function emmy.Reload(fileName)
+    local a, b, c = string.find(fileName, '%.lua')
+    if a then
+        fileName = string.sub(fileName, 1, a - 1)
+    end
+
+    emmy.DebugLog('Try reload : ' .. fileName, 1)
+    local searchers = package.searchers or package.loaders
+    for _, load in ipairs(searchers) do
+        local result = load(fileName)
+        if type(result) == 'function' then
+            break
+        end
+    end
 end
 
 if emmy_init then

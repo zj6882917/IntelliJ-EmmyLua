@@ -38,7 +38,20 @@ along with Decoda.  If not, see <http://www.gnu.org/licenses/>.
 // Forward declarations.
 //
 
-class TiXmlNode;
+class StackNode;
+class StackLuaObjectNode;
+class StackTableNode;
+class EvalResultNode;
+class DebugPipeline;
+class DebugMessage;
+class LPFunctionCall;
+
+enum class ScriptRegisterResult
+{
+	RegisterAndSend,
+	RegisterOnly,
+	Exist
+};
 
 /**
  * This class encapsulates the part of the debugger that runs inside the
@@ -46,9 +59,6 @@ class TiXmlNode;
  */
 class DebugBackend
 {
-
-private:
-
     struct VirtualMachine;
 
 public:
@@ -73,6 +83,8 @@ public:
      */
     bool Initialize(HINSTANCE hInstance);
 
+	bool InitializePipeline();
+
     /**
      * Attaches the debugger to the state.
      */
@@ -96,9 +108,11 @@ public:
      * was not available for the script. This should be set if the script was encountered
      * through a call other than the load function.
      */
-    int RegisterScript(lua_State* L, const char* source, size_t size, const char* name, bool unavailable);
+	ScriptRegisterResult RegisterScript(LAPI api, lua_State* L, const char* source, size_t size, const char* name, bool unavailable, size_t* index);
 
-    int RegisterScript(LAPI api, lua_State* L, lua_Debug* ar);
+	ScriptRegisterResult RegisterScript(LAPI api, lua_State* L, lua_Debug* ar, size_t* index);
+
+	void UnregisterScript(const char* name, const char* fixedName);
 
     /**
      * Steps execution of a "broken" script by one line. If the current line
@@ -131,7 +145,7 @@ public:
      * Evalates the expression. If there was an error evaluating the expression the
      * method returns false and the error message is stored in the result.
      */
-    bool Evaluate(LAPI api, lua_State* L, const std::string& expression, int stackLevel, int depth, std::string& result);
+	EvalResultNode* Evaluate(LAPI api, lua_State* L, const std::string& expression, int stackLevel, int depth);
 
     /**
      * Toggles a breakpoint on the line on or off.
@@ -160,7 +174,7 @@ public:
      * name. The name is the same name that was supplied when the script was
      * loaded.
      */
-    int GetScriptIndex(const char* name) const;
+	size_t GetScriptIndex(const char* name) const;
 
     bool StackHasBreakpoint(LAPI api, lua_State* L);
 
@@ -185,7 +199,7 @@ public:
     /**
      * Sends a text message to the front end.
      */
-    void Message(const char* message, MessageType type = MessageType_Normal);
+    void Message(const char* message, MessageType type = MessageType_Normal) const;
 
     /**
      * Ignores the specified exception whenever it occurs.
@@ -202,6 +216,8 @@ public:
      * occurs.
      */
     void HookCallback(LAPI api, lua_State* L, lua_Debug* ar);
+
+	void SetAllHookModeLazy(HookMode mode);
 
     /**
      * Called when a new API is created.
@@ -226,12 +242,28 @@ public:
 	* Gets the value at location n on the stack as text. If expandTable is true
 	* then tables will be returned in their expanded form (i.e. "{ ... }")
 	*/
-	TiXmlNode* GetValueAsText(LAPI api, lua_State* L, int n, int maxDepth = 10, const char* typeNameOverride = nullptr, bool displayAsKey = false, bool askEmmy = true) const;
+	StackLuaObjectNode* GetValueAsText(LAPI api, lua_State* L, int n, int maxDepth = 10, const char* typeNameOverride = nullptr, bool displayAsKey = false, bool askEmmy = true) const;
 
 	/**
 	* Returns the index of the API that the VM was created in.
 	*/
 	LAPI GetApiForVm(lua_State* L) const;
+
+	void HandleMessage(DebugMessage* message);
+
+	void BeginProfiler();
+
+	void ProcProfiler(LAPI api, lua_State* L, lua_Debug* ar);
+
+	LPFunctionCall* GetProfilerCall(const char* source, const char* name, int line);
+
+	void EndProfiler();
+
+	/**
+	* Returns true if a debugger is currently attached to our process, or false
+	* if otherwise.
+	*/
+	bool GetIsAttached() const;
 private:
 	class Breakpoint
 	{
@@ -261,7 +293,13 @@ private:
 
         void ClearBreakpoints();
 
-        std::string                 name;
+		bool ReadyToSend();
+
+		CodeState                   state;
+		bool                        reloading;
+		size_t                      index;
+		std::string                 name;
+		std::string                 fileName;
         std::string                 source;
         std::string                 title;
 		std::vector<Breakpoint*>    breakpoints;    // Lines that have breakpoints on them.
@@ -271,13 +309,12 @@ private:
 
     struct EvaluateData
     {
-		bool success;
 		lua_State* L;
 		LAPI api;
         int             stackLevel;
 		int				depth;
         std::string     expression;
-        std::string     result;
+		EvalResultNode* result;
     };
 
     /**
@@ -295,17 +332,6 @@ private:
      * executing.
      */
     void WaitForContinue();
-
-    /**
-     * Entry point into the command handling thread.
-     */
-    void CommandThreadProc();
-
-    /**
-     * Static version of the command handler thread entry point. This just
-     * forwards to the non-static version.
-     */
-    static DWORD WINAPI StaticCommandThreadProc(LPVOID param);
 
     /**
      * Breaks from inside the script code. This will block until execution
@@ -332,14 +358,14 @@ private:
      * be skipped. This is usful when the current execution point is an error
      * handler we defined.
      */
-    void SendBreakEvent(LAPI api, lua_State* L, int stackTop = 0);
+	bool SendBreakEvent(LAPI api, lua_State* L, int stackTop = 0);
 
     /**
      * Sends an exception event to the frontend. Break events should be sent
      * immediately before exception events so that the frontend has access
      * to the call stack.
      */
-    void SendExceptionEvent(lua_State* L, const char* message);
+	bool SendExceptionEvent(lua_State* L, const char* message);
 
     /**
      * Gets the directory that the DLL is in. The directory ends in a slash.
@@ -350,13 +376,13 @@ private:
      * Gets the value at location n on the stack as text. If expandTable is true
      * then tables will be returned in their expanded form (i.e. "{ ... }")
      */
-    TiXmlNode* GetLuaBindClassValue(LAPI api, lua_State* L, unsigned int maxDepth, bool displayAsKey = false) const;
+	StackNode* GetLuaBindClassValue(LAPI api, lua_State* L, unsigned int maxDepth, bool displayAsKey = false) const;
 
     /**
      * Gets the table value at location n on the stack as text. Nested tables are
      * not expanded.
      */
-    TiXmlNode* GetTableAsText(LAPI api, lua_State* L, int t, int maxDepth = 10, const char* typeNameOverride = NULL) const;
+	StackTableNode* GetTableAsText(LAPI api, lua_State* L, int t, int maxDepth = 10, const char* typeNameOverride = NULL) const;
 
     /**
      * Returns true if the name belongs to a Lua internal variable that we
@@ -382,8 +408,6 @@ private:
      */
     static DWORD WINAPI FinishInitialize(LPVOID param);
 
-private:
-
     static const int s_maxModuleNameLength = 32;
     static const int s_maxEntryNameLength  = 256;
 
@@ -397,7 +421,7 @@ private:
     
     struct Api
     {
-        Api() : IndexChained(NULL), NewIndexChained(NULL) { }
+        Api() : IndexChained(nullptr), NewIndexChained(nullptr) { }
         lua_CFunction   IndexChained;
         lua_CFunction   NewIndexChained;
     };
@@ -418,15 +442,17 @@ private:
         int             callStackDepth;
         int             lastStepLine;
         int             lastStepScript;
-        LAPI   api;
+        LAPI            api;
         std::string     name;
         unsigned int    stackTop;
         bool            luaJitWorkAround;
         bool            breakpointInStack;
         bool            haveActiveBreakpoints;
         std::string     lastFunctions;
-		bool			inEval;
+		bool			skipPostLoadScript;
 		bool			isEmmyLoaded;
+		HookMode        lazyHookMode;
+		bool            lazySetHook;
     };
 
     struct StackEntry
@@ -451,12 +477,6 @@ private:
      * Waits for the specified event or the detached event.
      */
     void WaitForEvent(HANDLE hEvent) const;
-
-    /**
-     * Returns true if a debugger is currently attached to our process, or false
-     * if otherwise.
-     */
-    bool GetIsAttached() const;
 
     /**
      * Converts from a string with (possibly) embedded zeros to an ASCII string. If force
@@ -578,14 +598,24 @@ private:
      * Creates a call stack that unifies the native call stack and the script
      * call stack.
      */
-    unsigned int GetUnifiedStack(LAPI api, const StackEntry nativeStack[], unsigned int nativeStackSize,
-        const lua_Debug scriptStack[], unsigned int scriptStackSize,
+    unsigned int GetUnifiedStack(LAPI api,
+		const StackEntry nativeStack[],
+		unsigned int nativeStackSize,
+        const lua_Debug scriptStack[],
+		unsigned int scriptStackSize,
         StackEntry unifiedStack[]) const;
 
+	Script* GetScript(size_t index) const;
+
+	void SendScript(lua_State* L, Script* script) const;
+
+	void CheckReload(LAPI api, lua_State* L);
+
+	void Reload(LAPI api, lua_State* L, Script* script);
 private:
 
     typedef stdext::hash_map<lua_State*, VirtualMachine*>   StateToVmMap;
-    typedef stdext::hash_map<std::string, unsigned int>     NameToScriptMap;
+    typedef stdext::hash_map<std::string, size_t>     NameToScriptMap;
 
     static DebugBackend*            s_instance;
     static const unsigned int       s_maxStackSize  = 100;
@@ -602,14 +632,12 @@ private:
 
     CriticalSection                 m_criticalSection;
     CriticalSection                 m_breakLock;
+	CriticalSection                 m_vmsLock;
 
     std::vector<Script*>            m_scripts;
     NameToScriptMap                 m_nameToScript;
 
-    Channel                         m_eventChannel;
-
     HANDLE                          m_commandThread;
-    Channel                         m_commandChannel;
 
     std::list<ClassInfo>            m_classInfos;
     std::vector<VirtualMachine*>    m_vms;
@@ -622,8 +650,13 @@ private:
 
     mutable bool                    m_warnedAboutUserData;
 
-	std::string						m_emmyLua;
+	bool							m_hooked;
+	std::string						m_emmyLuaFilePath;
+	DebugPipeline*					m_debugPipeline;
 
+	bool                            m_profiler;
+	std::hash_map<std::string, LPFunctionCall*> m_profilerCallMap;
+	bool                            m_checkReloadNextTime;
 };
 
 #endif

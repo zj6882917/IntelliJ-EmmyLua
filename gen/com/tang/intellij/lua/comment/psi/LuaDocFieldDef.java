@@ -7,12 +7,13 @@ import com.intellij.psi.PsiElement;
 import com.tang.intellij.lua.psi.LuaClassField;
 import com.intellij.psi.PsiNameIdentifierOwner;
 import com.intellij.psi.StubBasedPsiElement;
-import com.tang.intellij.lua.stubs.LuaDocClassFieldStub;
+import com.tang.intellij.lua.stubs.LuaDocFieldDefStub;
 import com.intellij.navigation.ItemPresentation;
-import com.tang.intellij.lua.lang.type.LuaTypeSet;
+import com.tang.intellij.lua.psi.Visibility;
 import com.tang.intellij.lua.search.SearchContext;
+import com.tang.intellij.lua.ty.ITy;
 
-public interface LuaDocFieldDef extends LuaClassField, LuaDocPsiElement, PsiNameIdentifierOwner, StubBasedPsiElement<LuaDocClassFieldStub> {
+public interface LuaDocFieldDef extends LuaClassField, LuaDocPsiElement, PsiNameIdentifierOwner, StubBasedPsiElement<LuaDocFieldDefStub> {
 
   @Nullable
   LuaDocAccessModifier getAccessModifier();
@@ -21,13 +22,16 @@ public interface LuaDocFieldDef extends LuaClassField, LuaDocPsiElement, PsiName
   LuaDocCommentString getCommentString();
 
   @Nullable
-  LuaDocTypeSet getTypeSet();
+  LuaDocTy getTy();
 
   @Nullable
   PsiElement getId();
 
-  @Nullable
-  LuaTypeSet guessType(SearchContext context);
+  @NotNull
+  ITy guessParentType(SearchContext context);
+
+  @NotNull
+  Visibility getVisibility();
 
   @Nullable
   PsiElement getNameIdentifier();

@@ -12,6 +12,7 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
+---@class string
 string = {}
 
 ---
@@ -19,6 +20,7 @@ string = {}
 --- ..., `s[j]`. The default value for `i` is 1; the default value for `j`
 --- is `i`.
 --- Note that numerical codes are not necessarily portable across platforms.
+---@param s string
 ---@param optional i number
 ---@param optional j number
 function string.byte(s, i, j) end
@@ -28,12 +30,14 @@ function string.byte(s, i, j) end
 --- the number of arguments, in which each character has the internal numerical
 --- code equal to its corresponding argument.
 --- Note that numerical codes are not necessarily portable across platforms.
+---@return string
 function string.char(...) end
 
 ---
 --- Returns a string containing a binary representation of the given
 --- function, so that a later `loadstring` on this string returns a copy of
 --- the function. `function` must be a Lua function without upvalues.
+---@param func fun()
 function string.dump(func) end
 
 ---
@@ -47,6 +51,13 @@ function string.dump(func) end
 --- "magic". Note that if `plain` is given, then `init` must be given as well.
 --- If the pattern has captures, then in a successful match the captured values
 --- are also returned, after the two indices.
+---@overload fun(s:string, pattern:string):number, number
+---@overload fun(s:string, pattern:string, init:number):number, number
+---@param s string
+---@param pattern string
+---@param init number
+---@param plain boolean
+---@return number, number
 function string.find(s, pattern, init, plain) end
 
 ---
@@ -71,6 +82,8 @@ function string.find(s, pattern, init, plain) end
 --- `x` all expect a number as argument, whereas `q` and `s` expect a string.
 --- This function does not accept string values containing embedded zeros,
 --- except as arguments to the `q` option.
+---@param formatstring string
+---@return string
 function string.format(formatstring, ...) end
 
 ---
@@ -96,6 +109,8 @@ function string.format(formatstring, ...) end
 ---
 --- For this function, a '`^`' at the start of a pattern does not work as an
 --- anchor, as this would prevent the iteration.
+---@param s string
+---@param pattern string
 function string.gmatch(s, pattern) end
 
 ---
@@ -140,17 +155,26 @@ function string.gmatch(s, pattern) end
 --- local t = {name="lua", version="5.1"}
 --- x = string.gsub("$name-$version.tar.gz", "%$(%w+)", t)
 --- -- > x="lua-5.1.tar.gz"
+---@overload fun(s:string, pattern:string, repl:table|fun()):void
+---@param s string
+---@param pattern string
+---@param repl table|fun()
+---@param n number
 function string.gsub(s, pattern, repl, n) end
 
 ---
 --- Receives a string and returns its length. The empty string `""` has
 --- length 0. Embedded zeros are counted, so `"a\000bc\000"` has length 5.
+---@param s string
+---@return number
 function string.len(s) end
 
 ---
 --- Receives a string and returns a copy of this string with all uppercase
 --- letters changed to lowercase. All other characters are left unchanged. The
 --- definition of what an uppercase letter is depends on the current locale.
+---@param s string
+---@return string
 function string.lower(s) end
 
 ---
@@ -159,17 +183,25 @@ function string.lower(s) end
 --- it returns nil. If `pattern` specifies no captures, then the whole match
 --- is returned. A third, optional numerical argument `init` specifies where
 --- to start the search; its default value is 1 and can be negative.
----@param optional init number
+---@overload fun(s:string, pattern:string):void
+---@param s string
+---@param pattern string
+---@param init number
 function string.match(s, pattern, init) end
 
 ---
 --- Returns a string that is the concatenation of `n` copies of the string
 --- `s`.
-function string.rep(s, n) return "" end
+---@param s string
+---@param n number
+---@return string
+function string.rep(s, n) end
 
 ---
 --- Returns a string that is the string `s` reversed.
-function string.reverse(s) return "" end
+---@param s string
+---@return string
+function string.reverse(s) end
 
 ---
 --- Returns the substring of `s` that starts at `i` and continues until
@@ -177,10 +209,16 @@ function string.reverse(s) return "" end
 --- be equal to -1 (which is the same as the string length). In particular,
 --- the call `string.sub(s,1,j)` returns a prefix of `s` with length `j`, and
 --- `string.sub(s, -i)` returns a suffix of `s` with length `i`.
+---@param s string
+---@param i number
+---@param j number
+---@return string
 function string.sub(s, i, j) end
 
 ---
 --- Receives a string and returns a copy of this string with all lowercase
 --- letters changed to uppercase. All other characters are left unchanged. The
 --- definition of what a lowercase letter is depends on the current locale.
+---@param s string
+---@return string
 function string.upper(s) return "" end

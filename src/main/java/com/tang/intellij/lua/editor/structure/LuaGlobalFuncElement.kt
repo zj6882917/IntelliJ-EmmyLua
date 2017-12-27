@@ -17,17 +17,10 @@
 package com.tang.intellij.lua.editor.structure
 
 import com.tang.intellij.lua.lang.LuaIcons
-import com.tang.intellij.lua.psi.LuaGlobalFuncDef
+import com.tang.intellij.lua.psi.LuaFuncDef
+import com.tang.intellij.lua.psi.LuaPsiElement
 
-/**
-
- * Created by TangZX on 2016/12/13.
- */
-class LuaGlobalFuncElement internal constructor(globalFuncDef: LuaGlobalFuncDef) : LuaTreeElement<LuaGlobalFuncDef>(globalFuncDef, LuaIcons.GLOBAL_FUNCTION) {
-
-    private val globalFuncName: String? = globalFuncDef.name
-
-    override fun getPresentableText(): String? {
-        return globalFuncName
-    }
+class LuaGlobalFuncElement constructor(target: LuaPsiElement, name: String, paramSignature: String)
+    : LuaFuncElement(target, name, paramSignature, LuaIcons.GLOBAL_FUNCTION) {
+    constructor(target: LuaFuncDef) : this(target, target.name!!, target.paramSignature)
 }

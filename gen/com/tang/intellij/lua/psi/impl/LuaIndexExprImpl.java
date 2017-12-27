@@ -10,15 +10,16 @@ import com.intellij.psi.util.PsiTreeUtil;
 import static com.tang.intellij.lua.psi.LuaTypes.*;
 import com.tang.intellij.lua.psi.*;
 import com.intellij.navigation.ItemPresentation;
-import com.tang.intellij.lua.lang.type.LuaTypeSet;
 import com.tang.intellij.lua.search.SearchContext;
-import com.tang.intellij.lua.stubs.LuaIndexStub;
+import com.tang.intellij.lua.ty.ITy;
+import com.tang.intellij.lua.stubs.LuaIndexExprStub;
 import com.intellij.psi.stubs.IStubElementType;
 import com.intellij.psi.tree.IElementType;
+import com.tang.intellij.lua.stubs.LuaExprStub;
 
 public class LuaIndexExprImpl extends LuaIndexExprMixin implements LuaIndexExpr {
 
-  public LuaIndexExprImpl(LuaIndexStub stub, IStubElementType<?, ?> nodeType) {
+  public LuaIndexExprImpl(LuaIndexExprStub stub, IStubElementType<?, ?> nodeType) {
     super(stub, nodeType);
   }
 
@@ -26,7 +27,7 @@ public class LuaIndexExprImpl extends LuaIndexExprMixin implements LuaIndexExpr 
     super(node);
   }
 
-  public LuaIndexExprImpl(LuaIndexStub stub, IElementType type, ASTNode node) {
+  public LuaIndexExprImpl(LuaIndexExprStub stub, IElementType type, ASTNode node) {
     super(stub, type, node);
   }
 
@@ -42,7 +43,7 @@ public class LuaIndexExprImpl extends LuaIndexExprMixin implements LuaIndexExpr 
   @Override
   @NotNull
   public List<LuaExpr> getExprList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaExpr.class);
+    return PsiTreeUtil.getStubChildrenOfTypeAsList(this, LuaExpr.class);
   }
 
   @Override
@@ -53,41 +54,41 @@ public class LuaIndexExprImpl extends LuaIndexExprMixin implements LuaIndexExpr 
 
   @Nullable
   public PsiElement getNameIdentifier() {
-    return LuaPsiImplUtil.getNameIdentifier(this);
+    return LuaPsiImplUtilKt.getNameIdentifier(this);
   }
 
   @NotNull
   public PsiElement setName(String name) {
-    return LuaPsiImplUtil.setName(this, name);
+    return LuaPsiImplUtilKt.setName(this, name);
   }
 
   @Nullable
   public String getName() {
-    return LuaPsiImplUtil.getName(this);
+    return LuaPsiImplUtilKt.getName(this);
   }
 
   public int getTextOffset() {
-    return LuaPsiImplUtil.getTextOffset(this);
+    return LuaPsiImplUtilKt.getTextOffset(this);
   }
 
   @NotNull
   public ItemPresentation getPresentation() {
-    return LuaPsiImplUtil.getPresentation(this);
+    return LuaPsiImplUtilKt.getPresentation(this);
+  }
+
+  @Nullable
+  public LuaLiteralExpr getIdExpr() {
+    return LuaPsiImplUtilKt.getIdExpr(this);
   }
 
   @NotNull
-  public String toString() {
-    return LuaPsiImplUtil.toString(this);
+  public ITy guessParentType(SearchContext context) {
+    return LuaPsiImplUtilKt.guessParentType(this, context);
   }
 
-  @Nullable
-  public LuaTypeSet guessPrefixType(SearchContext context) {
-    return LuaPsiImplUtil.guessPrefixType(this, context);
-  }
-
-  @Nullable
-  public LuaTypeSet guessValueType(SearchContext context) {
-    return LuaPsiImplUtil.guessValueType(this, context);
+  @NotNull
+  public ITy guessValueType(SearchContext context) {
+    return LuaPsiImplUtilKt.guessValueType(this, context);
   }
 
   @Override
@@ -100,6 +101,12 @@ public class LuaIndexExprImpl extends LuaIndexExprMixin implements LuaIndexExpr 
   @Nullable
   public PsiElement getColon() {
     return findChildByType(COLON);
+  }
+
+  @Override
+  @Nullable
+  public PsiElement getLbrack() {
+    return findChildByType(LBRACK);
   }
 
 }

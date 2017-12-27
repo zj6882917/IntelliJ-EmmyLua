@@ -16,7 +16,6 @@
 
 package com.tang.intellij.lua.stubs.index
 
-import com.intellij.psi.PsiComment
 import com.intellij.util.indexing.*
 import com.intellij.util.io.DataExternalizer
 import com.intellij.util.io.EnumeratorStringDescriptor
@@ -40,7 +39,7 @@ class ClassIndex : FileBasedIndexExtension<String, ClassEntry>() {
         fileContent.psiFile.acceptChildren(object :LuaVisitor() {
             override fun visitPsiElement(o: LuaPsiElement) {
                 if (o is LuaComment) {
-                    val type = o.classDef?.classType
+                    val type = o.classDef?.type
                     if (type != null) {
                         map.put(type.className, ClassEntry(type.className, type.superClassName))
                     }

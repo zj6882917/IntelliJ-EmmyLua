@@ -3,13 +3,17 @@ package com.tang.intellij.lua.comment.psi;
 
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElementVisitor;
-import com.tang.intellij.lua.psi.LuaClassField;
 import com.intellij.psi.PsiNameIdentifierOwner;
+import com.tang.intellij.lua.psi.LuaClassField;
 
 public class LuaDocVisitor extends PsiElementVisitor {
 
   public void visitAccessModifier(@NotNull LuaDocAccessModifier o) {
     visitPsiElement(o);
+  }
+
+  public void visitArrTy(@NotNull LuaDocArrTy o) {
+    visitTy(o);
   }
 
   public void visitClassDef(@NotNull LuaDocClassDef o) {
@@ -30,6 +34,34 @@ public class LuaDocVisitor extends PsiElementVisitor {
     // visitPsiNameIdentifierOwner(o);
   }
 
+  public void visitFunctionParam(@NotNull LuaDocFunctionParam o) {
+    visitPsiElement(o);
+  }
+
+  public void visitFunctionTy(@NotNull LuaDocFunctionTy o) {
+    visitTy(o);
+  }
+
+  public void visitGeneralTy(@NotNull LuaDocGeneralTy o) {
+    visitTy(o);
+  }
+
+  public void visitGenericTy(@NotNull LuaDocGenericTy o) {
+    visitTy(o);
+  }
+
+  public void visitLanDef(@NotNull LuaDocLanDef o) {
+    visitPsiElement(o);
+  }
+
+  public void visitOverloadDef(@NotNull LuaDocOverloadDef o) {
+    visitPsiElement(o);
+  }
+
+  public void visitParTy(@NotNull LuaDocParTy o) {
+    visitTy(o);
+  }
+
   public void visitParamDef(@NotNull LuaDocParamDef o) {
     visitPsiElement(o);
   }
@@ -42,12 +74,20 @@ public class LuaDocVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitSeeRefTag(@NotNull LuaDocSeeRefTag o) {
+    visitPsiElement(o);
+  }
+
   public void visitTagDef(@NotNull LuaDocTagDef o) {
     visitPsiElement(o);
   }
 
   public void visitTagValue(@NotNull LuaDocTagValue o) {
     visitPsiElement(o);
+  }
+
+  public void visitTy(@NotNull LuaDocTy o) {
+    visitType(o);
   }
 
   public void visitTypeDef(@NotNull LuaDocTypeDef o) {
@@ -58,12 +98,16 @@ public class LuaDocVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitTypeSet(@NotNull LuaDocTypeSet o) {
-    visitPsiElement(o);
+  public void visitUnionTy(@NotNull LuaDocUnionTy o) {
+    visitTy(o);
   }
 
   public void visitLuaClassField(@NotNull LuaClassField o) {
     visitElement(o);
+  }
+
+  public void visitType(@NotNull LuaDocType o) {
+    visitPsiElement(o);
   }
 
   public void visitPsiElement(@NotNull LuaDocPsiElement o) {

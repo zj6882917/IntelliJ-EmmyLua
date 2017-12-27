@@ -9,17 +9,18 @@ import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static com.tang.intellij.lua.comment.psi.LuaDocTypes.*;
 import com.intellij.extapi.psi.StubBasedPsiElementBase;
-import com.tang.intellij.lua.stubs.LuaDocClassFieldStub;
+import com.tang.intellij.lua.stubs.LuaDocFieldDefStub;
 import com.tang.intellij.lua.comment.psi.*;
 import com.intellij.navigation.ItemPresentation;
-import com.tang.intellij.lua.lang.type.LuaTypeSet;
+import com.tang.intellij.lua.psi.Visibility;
 import com.tang.intellij.lua.search.SearchContext;
+import com.tang.intellij.lua.ty.ITy;
 import com.intellij.psi.stubs.IStubElementType;
 import com.intellij.psi.tree.IElementType;
 
-public class LuaDocFieldDefImpl extends StubBasedPsiElementBase<LuaDocClassFieldStub> implements LuaDocFieldDef {
+public class LuaDocFieldDefImpl extends StubBasedPsiElementBase<LuaDocFieldDefStub> implements LuaDocFieldDef {
 
-  public LuaDocFieldDefImpl(LuaDocClassFieldStub stub, IStubElementType type) {
+  public LuaDocFieldDefImpl(LuaDocFieldDefStub stub, IStubElementType type) {
     super(stub, type);
   }
 
@@ -27,7 +28,7 @@ public class LuaDocFieldDefImpl extends StubBasedPsiElementBase<LuaDocClassField
     super(node);
   }
 
-  public LuaDocFieldDefImpl(LuaDocClassFieldStub stub, IElementType type, ASTNode node) {
+  public LuaDocFieldDefImpl(LuaDocFieldDefStub stub, IElementType type, ASTNode node) {
     super(stub, type, node);
   }
 
@@ -54,8 +55,8 @@ public class LuaDocFieldDefImpl extends StubBasedPsiElementBase<LuaDocClassField
 
   @Override
   @Nullable
-  public LuaDocTypeSet getTypeSet() {
-    return PsiTreeUtil.getChildOfType(this, LuaDocTypeSet.class);
+  public LuaDocTy getTy() {
+    return PsiTreeUtil.getChildOfType(this, LuaDocTy.class);
   }
 
   @Override
@@ -64,9 +65,14 @@ public class LuaDocFieldDefImpl extends StubBasedPsiElementBase<LuaDocClassField
     return findChildByType(ID);
   }
 
-  @Nullable
-  public LuaTypeSet guessType(SearchContext context) {
-    return LuaDocPsiImplUtilKt.guessType(this, context);
+  @NotNull
+  public ITy guessParentType(SearchContext context) {
+    return LuaDocPsiImplUtilKt.guessParentType(this, context);
+  }
+
+  @NotNull
+  public Visibility getVisibility() {
+    return LuaDocPsiImplUtilKt.getVisibility(this);
   }
 
   @Nullable

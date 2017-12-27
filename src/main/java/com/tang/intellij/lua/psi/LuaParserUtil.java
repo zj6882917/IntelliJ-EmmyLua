@@ -21,22 +21,56 @@ import com.intellij.lang.PsiBuilder;
 import com.intellij.lang.WhitespacesAndCommentsBinder;
 import com.intellij.lang.WhitespacesBinders;
 import com.intellij.lang.parser.GeneratedParserUtilBase;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.TokenType;
 import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.tree.TokenSet;
 
 import static com.tang.intellij.lua.psi.LuaTypes.*;
 
+@SuppressWarnings("unused")
 public class LuaParserUtil extends GeneratedParserUtilBase {
 
+    /**
+     * right:
+     * --- comment
+     * local obj
+     *
+     * wrong:
+     * --- comment
+     *
+     * local obj
+     */
     public static WhitespacesAndCommentsBinder MY_LEFT_COMMENT_BINDER = (list, b, tokenTextGetter) -> {
+        int lines = 0;
         for (int i = list.size() - 1; i >= 0; i--) {
             IElementType type = list.get(i);
             if (type == DOC_COMMENT) {
                 return i;
+            } else {
+                String sequence = String.valueOf(tokenTextGetter.get(i));
+                lines += StringUtil.getLineBreakCount(sequence);
+                if (lines > 1) {
+                    break;
+                }
             }
         }
         return list.size();
+    };
+
+    public static WhitespacesAndCommentsBinder MY_RIGHT_COMMENT_BINDER = (list, b, tokenTextGetter) -> {
+        for (int i = 0; i < list.size(); i++) {
+            IElementType type = list.get(i);
+            if (type == DOC_COMMENT) {
+                return i + 1;
+            } else {
+                String sequence = String.valueOf(tokenTextGetter.get(i));
+                if (sequence.contains("\n")) {
+                    break;
+                }
+            }
+        }
+        return 0;
     };
 
     public static boolean repeat(PsiBuilder builder_, int level_, Parser parser, int times) {
@@ -112,7 +146,7 @@ public class LuaParserUtil extends GeneratedParserUtilBase {
             if (begin == RPAREN)
                 begin = FUNCTION;
 
-            matchStart(builder_, 0, begin, true);
+            matchStart(true, builder_, 0, begin);
             marker.collapse(BLOCK);
             marker.setCustomEdgeTokenBinders(null, WhitespacesBinders.GREEDY_RIGHT_BINDER);
         }
@@ -124,8 +158,10 @@ public class LuaParserUtil extends GeneratedParserUtilBase {
     private static TokenSet REPEAT_TYPES = TokenSet.create(UNTIL);
     private static TokenSet THEN_TYPES1 = TokenSet.create(ELSE, ELSEIF, END);
     private static TokenSet THEN_SKIPS2 = TokenSet.create(ELSE, ELSEIF);
+    private static TokenSet BRACE_L_SET = TokenSet.create(LCURLY, LBRACK, LPAREN);
+    private static TokenSet BRACE_R_SET = TokenSet.create(RCURLY, RBRACK, RPAREN);
 
-    private static boolean matchStart(PsiBuilder builder, int level, IElementType begin, boolean advanced) {
+    private static boolean matchStart(boolean advanced, PsiBuilder builder, int level, IElementType begin) {
         if (begin == DO) {
             return matchEnd(advanced, builder, level, TokenSet.EMPTY, END_SET);
         }
@@ -147,7 +183,45 @@ public class LuaParserUtil extends GeneratedParserUtilBase {
         else if (begin == FUNCTION) {
             return matchEnd(advanced, builder, level, TokenSet.EMPTY, END_SET);
         }
+        else if (BRACE_L_SET.contains(begin)) {
+            return matchBrace(advanced, builder, level, getRBrace(begin));
+        }
         return false;
+    }
+
+    private static IElementType getRBrace(IElementType type) {
+        if (type == LCURLY) return RCURLY;
+        if (type == LPAREN) return RPAREN;
+        if (type == LBRACK) return RBRACK;
+        return null;
+    }
+
+    private static boolean matchBrace(boolean advanced, PsiBuilder builder, int level, IElementType end) {
+        if (!advanced)
+            builder.advanceLexer();
+        IElementType type = builder.getTokenType();
+        while (true) {
+            if (type == null || builder.eof()) {
+                return false;
+            }
+
+            while (true) {
+                if (type == end) {
+                    if (level != 0)
+                        builder.advanceLexer();
+                    return true;
+                }
+                boolean matchBrace = false;
+                if (BRACE_L_SET.contains(type)) {
+                    matchBrace = matchBrace(false, builder, level + 1, getRBrace(type));
+                }
+                if (!matchBrace) break;
+                type = builder.getTokenType();
+            }
+
+            builder.advanceLexer();
+            type = builder.getTokenType();
+        }
     }
 
     private static boolean matchEnd(boolean advanced, PsiBuilder builder, int level, TokenSet skips, TokenSet types) {
@@ -161,12 +235,15 @@ public class LuaParserUtil extends GeneratedParserUtilBase {
             }
 
             while (!skips.contains(type)) {
+                if (BRACE_R_SET.contains(type)) {
+                    return false;
+                }
                 if (types.contains(type)) {
                     if (level != 0)
                         builder.advanceLexer();
                     return true;
                 }
-                boolean isMatched = matchStart(builder, level + 1, type, false);
+                boolean isMatched = matchStart(false, builder, level + 1, type);
                 if (!isMatched)
                     break;
                 type = builder.getTokenType();
@@ -175,5 +252,9 @@ public class LuaParserUtil extends GeneratedParserUtilBase {
             builder.advanceLexer();
             type = builder.getTokenType();
         }
+    }
+
+    public static boolean parseExpr(PsiBuilder b, int l, Parser primaryExprParser) {
+        return LuaExpressionParser.INSTANCE.parse(b, l, primaryExprParser);
     }
 }
